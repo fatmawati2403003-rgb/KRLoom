@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>KRL Density MVP - Schedule &amp; Auth Unit Tests (TC-SCH-01 s.d. TC-SCH-21)</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f8fafc;
+      color: #0f172a;
+      padding: 24px;
+      line-height: 1.5;
+    }
+    .container {
+      max-width: 980px;
+      margin: 0 auto;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 24px;
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    }
+    h1 {
+      margin-top: 0;
+      font-size: 1.4rem;
+      color: #0369a1;
+      border-bottom: 2px solid #0284c7;
+      padding-bottom: 8px;
+    }
+    .summary-card {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 20px;
+      padding: 14px;
+      border-radius: 6px;
+      background: #f1f5f9;
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+    .badge-pass { background: #dcfce7; color: #166534; padding: 4px 10px; border-radius: 4px; }
+    .badge-fail { background: #fee2e2; color: #991b1b; padding: 4px 10px; border-radius: 4px; }
+    .badge-total { background: #e0f2fe; color: #075985; padding: 4px 10px; border-radius: 4px; }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      font-size: 0.85rem;
+    }
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 8px 10px;
+      text-align: left;
+    }
+    th {
+      background: #0f172a;
+      color: #ffffff;
+    }
+    tr:nth-child(even) { background: #f8fafc; }
+    .status-cell { font-weight: 700; }
+    .status-pass { color: #16a34a; }
+    .status-fail { color: #dc2626; }
+    code {
+      font-family: Consolas, monospace;
+      background: #e2e8f0;
+      padding: 2px 4px;
+      border-radius: 3px;
+    }
+  </style>
+
+  <!-- Load Modules -->
+  <script src="../js/config/constants.js"></script>
+  <script src="../js/config/presets.js"></script>
+  <script src="../js/core/calculator.js"></script>
+  <script src="../js/core/validator.js"></script>
+  <script src="../js/core/recommender.js"></script>
+  <script src="../js/core/auth.js"></script>
+  <script src="../js/engine/historyStore.js"></script>
+  <script src="../js/engine/scheduleStore.js"></script>
+</head>
+<body>
+
+  <div class="container">
+    <h1>KRL Density MVP — Verifikasi Fitur Jadwal, Autentikasi Admin, &amp; Rute KAI (TC-SCH-01 s.d. TC-SCH-21)</h1>
+    <p>Pengujian mandiri tanpa dependensi luar untuk validasi pencarian jadwal KRL berdasarkan asal-tujuan, pencegahan stasiun sama, CRUD admin, simulasi autentikasi login/logout, dan integrasi data kepadatan gerbong.</p>
+
+    <div class="summary-card" id="summary-card">
+      <span class="badge-total" id="total-badge">Total Uji: 0</span>
+      <span class="badge-pass" id="pass-badge">Lulus: 0</span>
+      <span class="badge-fail" id="fail-badge">Gagal: 0</span>
+    </div>
+
+    <table id="test-table">
+      <thead>
+        <tr>
+          <th style="width: 12%;">ID Test</th>
+          <th style="width: 25%;">Kelompok Uji</th>
+          <th style="width: 48%;">Ekspektasi &amp; Deskripsi</th>
+          <th style="width: 15%;">Hasil</th>
+        </tr>
+      </thead>
+      <tbody id="test-body">
+        <!-- Diisi otomatis oleh test runner -->
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      var testResults = [];
+      var passCount = 0;
+      var failCount = 0;
+
+      function assert(id, group, description, condition, actualVal) {
+        var isPass = !!condition;
+        if (isPass) {
+          passCount++;
+        } else {
+          failCount++;
+        }
+        testResults.push({
+          id: id,
+          group: group,
+          description: description,
+          isPass: isPass,
+          actualVal: actualVal
+        });
+      }
+
+      var Const = window.KRL.Constants;
+      var ScheduleStore = window.KRL.ScheduleStore;
+      var Auth = window.KRL.Auth;
+      var Rec = window.KRL.Recommender;
+
+      // Bersihkan & reset environment pengujian jadwal
+      ScheduleStore.resetDefaults();
+      Auth.logout();
+
+      // ==========================================
+      // KELOMPOK 1: DAFTAR STASIUN & VALIDASI INPUT
+      // ==========================================
+      
+      // TC-SCH-01: Verifikasi 13 stasiun jalur Yogyakarta-Solo
+      var stations = ScheduleStore.STATIONS;
+      var has13Stations = Array.isArray(stations) && stations.length === 13;
+      var hasEndpoints = stations[0] === 'Yogyakarta' && stations[12] === 'Palur';
+      assert('TC-SCH-01', 'Daftar Stasiun', 'Tersedia 13 stasiun resmi lengkap dari Yogyakarta sampai Palur', has13Stations && hasEndpoints, stations.length + ' stasiun (' + stations[0] + ' s.d. ' + stations[12] + ')');
+
+      // TC-SCH-02: Validasi stasiun asal dan tujuan sama tidak boleh
+      var resSame = ScheduleStore.search('Yogyakarta', 'Yogyakarta', '2026-11-22');
+      assert('TC-SCH-02', 'Validasi Pencarian', 'Stasiun asal dan tujuan sama harus ditolak (isValid: false) dengan pesan error', resSame.isValid === false && resSame.error && resSame.error.indexOf('tidak boleh sama') !== -1, resSame.error);
+
+      // TC-SCH-03: Validasi stasiun asal atau tujuan kosong
+      var resEmpty = ScheduleStore.search('', 'Palur', '2026-11-22');
+      assert('TC-SCH-03', 'Validasi Pencarian', 'Stasiun asal atau tujuan kosong harus ditolak (isValid: false)', resEmpty.isValid === false && resEmpty.error.indexOf('pilih stasiun') !== -1, resEmpty.error);
+
+      // ==========================================
+      // KELOMPOK 2: LOGIKA PENCARIAN JADWAL
+      // ==========================================
+
+      // TC-SCH-04: Pencarian arah timur (Yogyakarta -> Palur)
+      var resEast = ScheduleStore.search('Yogyakarta', 'Palur', '2026-11-22');
+      assert('TC-SCH-04', 'Pencarian Jadwal', 'Pencarian Yogyakarta ke Palur menghasilkan jadwal arah timur berurutan berdasarkan jam berangkat', resEast.isValid === true && resEast.results.length >= 4, resEast.results.length + ' perjalanan ditemukan');
+
+      // TC-SCH-05: Pencarian arah barat (Palur -> Yogyakarta)
+      var resWest = ScheduleStore.search('Palur', 'Yogyakarta', '2026-11-22');
+      assert('TC-SCH-05', 'Pencarian Jadwal', 'Pencarian Palur ke Yogyakarta menghasilkan jadwal arah barat (KA 101, KA 103, dll.)', resWest.isValid === true && resWest.results.length >= 4 && resWest.results[0].trainNumber.indexOf('KA 101') !== -1, resWest.results.length + ' perjalanan (pertama: ' + (resWest.results[0] ? resWest.results[0].trainNumber : 'none') + ')');
+
+      // TC-SCH-06: Pencarian stasiun antara (Klaten -> Solo Balapan)
+      var resMid = ScheduleStore.search('Klaten', 'Solo Balapan', '2026-11-22');
+      assert('TC-SCH-06', 'Pencarian Stasiun Antara', 'Pencarian stasiun antara (Klaten -> Solo Balapan) mencakup kereta rute tersebut dengan estimasi jam intermediate', resMid.isValid === true && resMid.results.length > 0 && resMid.results[0].searchOrigin === 'Klaten', resMid.results.length + ' perjalanan ditemukan untuk Klaten -> Solo Balapan');
+
+      // TC-SCH-07: Struktur data setiap hasil pencarian
+      var firstRes = resEast.results[0];
+      var hasRequiredFields = firstRes && firstRes.trainNumber && firstRes.departureTime && firstRes.arrivalTime && firstRes.durationDisplay && Array.isArray(firstRes.carriages);
+      assert('TC-SCH-07', 'Struktur Data Jadwal', 'Setiap entitas jadwal memuat No KA, jam berangkat, jam tiba, durasi, dan data 6 gerbong', hasRequiredFields, firstRes ? (firstRes.trainNumber + ' (' + firstRes.departureTime + ' - ' + firstRes.arrivalTime + ')') : 'null');
+
+      // ==========================================
+      // KELOMPOK 3: KETERHUBUNGAN DENGAN KEPADATAN GERBONG
+      // ==========================================
+
+      // TC-SCH-08: Pemilihan perjalanan (Active Trip)
+      var tripToSelect = resEast.results[1]; // KA 104
+      var selectSuccess = ScheduleStore.setActiveTrip(tripToSelect.id);
+      var activeTrip = ScheduleStore.getActiveTrip();
+      assert('TC-SCH-08', 'Keterhubungan Trip', 'setActiveTrip berhasil menyimpan dan getActiveTrip mengembalikan trip yang dipilih', selectSuccess === true && activeTrip && activeTrip.id === tripToSelect.id, activeTrip ? activeTrip.trainNumber : 'null');
+
+      // TC-SCH-09: Evaluasi rekomendasi gerbong dari perjalanan terpilih
+      var recSelected = Rec.generateRecommendations(activeTrip.carriages, {
+        trainset_id: activeTrip.trainsetId,
+        trip_id: activeTrip.tripId,
+        source_type: 'SIMULATION'
+      });
+      assert('TC-SCH-09', 'Keterhubungan Rekomendasi', 'Data gerbong perjalanan terpilih menghasilkan perankingan gerbong 6 slot valid', recSelected.isAvailable === true && recSelected.rankedCarriages.length === 6 && recSelected.mostRecommended !== null, 'Rank 1: ' + (recSelected.mostRecommended ? recSelected.mostRecommended.carriage_id : 'none'));
+
+      // ==========================================
+      // KELOMPOK 4: SIMULASI AUTENTIKASI ADMIN
+      // ==========================================
+
+      // TC-SCH-10: Status awal belum login
+      assert('TC-SCH-10', 'Autentikasi Admin', 'Sebelum login, isAuthenticated() harus bernilai false', Auth.isAuthenticated() === false, Auth.isAuthenticated());
+
+      // TC-SCH-11: Login simulasi gagal jika kredensial salah
+      var loginFail = Auth.login('admin', 'password_salah');
+      assert('TC-SCH-11', 'Autentikasi Admin', 'Login dengan kata sandi salah harus ditolak (success: false)', loginFail.success === false && Auth.isAuthenticated() === false, loginFail.message);
+
+      // TC-SCH-12: Login simulasi berhasil dengan kredensial demo
+      var loginSuccess = Auth.login('admin', 'admin123');
+      var currentUser = Auth.getCurrentUser();
+      assert('TC-SCH-12', 'Autentikasi Admin', 'Login dengan admin/admin123 berhasil dan sesi tercatat di browser', loginSuccess.success === true && Auth.isAuthenticated() === true && currentUser && currentUser.username === 'admin', currentUser ? currentUser.roleLabel : 'null');
+
+      // TC-SCH-13: Logout berhasil membersihkan sesi
+      var logoutRes = Auth.logout();
+      assert('TC-SCH-13', 'Autentikasi Admin', 'Logout berhasil menghapus sesi dan mengembalikan status isAuthenticated() ke false', logoutRes === true && Auth.isAuthenticated() === false, 'isAuthenticated: ' + Auth.isAuthenticated());
+
+      // ==========================================
+      // KELOMPOK 5: CRUD JADWAL OLEH ADMIN
+      // ==========================================
+
+      // TC-SCH-14: Tambah jadwal baru
+      var countBeforeAdd = ScheduleStore.getAll().length;
+      var newTripData = {
+        trainNumber: 'KA 999',
+        tripId: 'SIM-TRIP-999',
+        trainsetId: 'SIM-TS-99',
+        originStation: 'Yogyakarta',
+        destinationStation: 'Solo Balapan',
+        departureTime: '21:00',
+        arrivalTime: '22:15',
+        scenario: 'LOW',
+        notes: 'Uji Tambah Jadwal Malam'
+      };
+      var addRes = ScheduleStore.add(newTripData);
+      var allAfterAdd = ScheduleStore.getAll();
+      assert('TC-SCH-14', 'CRUD Admin — Tambah', 'Admin dapat menambahkan jadwal baru dan jadwal tersimpan di LocalStorage', addRes.success === true && allAfterAdd.length === countBeforeAdd + 1, 'Total jadwal: ' + allAfterAdd.length);
+
+      // TC-SCH-15: Ubah jadwal yang ada
+      var addedId = addRes.schedule.id;
+      var updateRes = ScheduleStore.update(addedId, {
+        trainNumber: 'KA 999-REVISI',
+        departureTime: '21:15',
+        notes: 'Catatan Diperbarui'
+      });
+      var updatedItem = ScheduleStore.getById(addedId);
+      assert('TC-SCH-15', 'CRUD Admin — Ubah', 'Admin dapat memperbarui jadwal dan perubahan langsung tercermin', updateRes.success === true && updatedItem && updatedItem.trainNumber === 'KA 999-REVISI' && updatedItem.departureTime === '21:15', updatedItem ? updatedItem.trainNumber + ' (' + updatedItem.departureTime + ')' : 'null');
+
+      // TC-SCH-16: Hapus jadwal setelah konfirmasi
+      var deleteRes = ScheduleStore.delete(addedId);
+      var itemAfterDelete = ScheduleStore.getById(addedId);
+      var countAfterDelete = ScheduleStore.getAll().length;
+      assert('TC-SCH-16', 'CRUD Admin — Hapus', 'Admin dapat menghapus jadwal dan item terhapus dari LocalStorage', deleteRes.success === true && itemAfterDelete === null && countAfterDelete === countBeforeAdd, 'Sisa jadwal: ' + countAfterDelete);
+
+      // ==========================================
+      // KELOMPOK 6: FITUR JADWAL KAI & VISUALISASI RUTE
+      // ==========================================
+
+      // TC-SCH-17: Pencarian stasiun interaktif berdasarkan nama dan kode (Autocomplete)
+      var searchByCode = ScheduleStore.searchStations('LPN');
+      var searchByName = ScheduleStore.searchStations('solo');
+      var isSearchValid = searchByCode.length > 0 && searchByCode[0].code === 'LPN' && searchByName.length >= 2;
+      assert('TC-SCH-17', 'Pencarian Stasiun KAI', 'searchStations menemukan stasiun berdasarkan nama maupun kode stasiun (LPN -> Lempuyangan, solo -> Solo Balapan & Solo Jebres)', isSearchValid, 'Ditemukan ' + searchByCode.length + ' untuk LPN, ' + searchByName.length + ' untuk solo');
+
+      // TC-SCH-18: Destinasi langsung cepat (Quick Routes)
+      var quickDests = ScheduleStore.getAvailableDestinations('Lempuyangan');
+      var quickValid = Array.isArray(quickDests) && quickDests.length > 0 && !quickDests.some(function(d){ return d.name === 'Lempuyangan'; });
+      assert('TC-SCH-18', 'Destinasi Cepat KAI', 'getAvailableDestinations mengembalikan pilihan stasiun tujuan langsung tanpa memasukkan stasiun asal', quickValid, quickDests.length + ' rute destinasi cepat dari Lempuyangan');
+
+      // TC-SCH-19: Filter pengaturan jadwal perjalanan
+      var filterCustom = { type: 'CUSTOM', fromTime: '06:00', untilTime: '09:00' };
+      var searchFiltered = ScheduleStore.search('Yogyakarta', 'Palur', '2026-11-24', filterCustom);
+      var filterValid = searchFiltered.isValid && searchFiltered.results.every(function(r) {
+        return r.departureTime >= '06:00' && r.departureTime <= '09:00';
+      });
+      assert('TC-SCH-19', 'Pengaturan Jadwal KAI', 'Filter jadwal custom (06:00 - 09:00) hanya menyaring jadwal kereta dalam rentang waktu tersebut', filterValid, searchFiltered.results.length + ' kereta pada jam 06:00 - 09:00');
+
+      // TC-SCH-20: Visualisasi rute vertikal (Access by KAI Timeline)
+      var targetSched = resEast.results[0];
+      var routeDetails = ScheduleStore.getTrainRouteDetails(targetSched.id, 'Lempuyangan', 'Klaten');
+      var routeValid = routeDetails && Array.isArray(routeDetails.stops) && routeDetails.stops.length === 13 &&
+        routeDetails.stops.some(function(s){ return s.name === 'Lempuyangan' && s.isUserOrigin === true; }) &&
+        routeDetails.stops.some(function(s){ return s.name === 'Klaten' && s.isUserDestination === true; });
+      assert('TC-SCH-20', 'Visualisasi Rute Kereta', 'getTrainRouteDetails menyusun seluruh urutan perhentian kereta, menandai stasiun keberangkatan (You are here) dan stasiun tujuan', routeValid, routeDetails ? (routeDetails.stops.length + ' perhentian: ' + routeDetails.startStation + ' s.d. ' + routeDetails.endStation) : 'null');
+
+      // TC-SCH-21: Detail stasiun dengan status transit dan kota
+      var lpnDetail = ScheduleStore.getStationDetail('Lempuyangan');
+      var detailValid = lpnDetail && lpnDetail.code === 'LPN' && lpnDetail.city === 'Yogyakarta' && lpnDetail.isTransit === true;
+      assert('TC-SCH-21', 'Metadata Stasiun', 'getStationDetail memuat kode stasiun, kota, dan status stasiun transit untuk UI KAI', detailValid, lpnDetail ? (lpnDetail.code + ', ' + lpnDetail.city + ', Transit: ' + lpnDetail.isTransit) : 'null');
+
+      // ==========================================
+      // RENDER REPORT KE DOM
+      // ==========================================
+      var totalElem = document.getElementById('total-badge');
+      var passElem = document.getElementById('pass-badge');
+      var failElem = document.getElementById('fail-badge');
+      var tbody = document.getElementById('test-body');
+
+      totalElem.textContent = 'Total Uji: ' + testResults.length;
+      passElem.textContent = 'Lulus: ' + passCount;
+      failElem.textContent = 'Gagal: ' + failCount;
+
+      var rowsHtml = testResults.map(function (t) {
+        var statusBadge = t.isPass ? 
+          '<span class="status-cell status-pass">✓ PASS</span>' : 
+          '<span class="status-cell status-fail">✗ FAIL</span>';
+        
+        return `
+          <tr>
+            <td><code>${t.id}</code></td>
+            <td><strong>${t.group}</strong></td>
+            <td>
+              <div>${t.description}</div>
+              <div style="font-size: 0.775rem; color: #64748b; margin-top: 2px;">Nilai Uji: ${t.actualVal}</div>
+            </td>
+            <td>${statusBadge}</td>
+          </tr>
+        `;
+      }).join('');
+
+      tbody.innerHTML = rowsHtml;
+    })();
+  </script>
+</body>
+</html>

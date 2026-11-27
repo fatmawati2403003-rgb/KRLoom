@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>KRL Density — Test Jadwal Resmi</title>
+  <style>
+    body { font-family: monospace; padding: 20px; background: #f8fafc; }
+    h1 { color: #0369a1; font-size: 1.2rem; }
+    h2 { color: #374151; font-size: 1rem; border-left: 4px solid #0369a1; padding-left: 10px; margin-top: 20px; }
+    .pass { color: #16a34a; font-weight: bold; }
+    .fail { color: #dc2626; font-weight: bold; }
+    .info { color: #64748b; }
+    .row { background: #fff; border: 1px solid #e2e8f0; padding: 6px 10px; margin: 2px 0; border-radius: 4px; }
+    pre { background: #fff; border: 1px solid #e2e8f0; padding: 10px; border-radius: 6px; overflow-x: auto; font-size: 0.85rem; }
+    .summary { background: #eff6ff; border: 2px solid #bfdbfe; padding: 14px; border-radius: 8px; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h1>🧪 KRL Density — Test Jadwal Resmi (scheduleData.js)</h1>
+  <div id="output">Memuat...</div>
+
+  <script src="../js/engine/scheduleData.js"></script>
+  <script>
+  (function() {
+    var out = document.getElementById('output');
+    var html = '';
+    var passed = 0;
+    var failed = 0;
+
+    function check(label, condition, detail) {
+      if (condition) {
+        passed++;
+        html += '<div class="row"><span class="pass">✓ PASS</span> ' + label + (detail ? ' — <span class="info">' + detail + '</span>' : '') + '</div>';
+      } else {
+        failed++;
+        html += '<div class="row"><span class="fail">✗ FAIL</span> ' + label + (detail ? ' — <span class="fail">' + detail + '</span>' : '') + '</div>';
+      }
+    }
+
+    var SD = KRL.ScheduleData;
+
+    // Verifikasi modul tersedia
+    check('ScheduleData modul tersedia', !!SD);
+    check('DATA_SOURCE tersedia', !!SD.DATA_SOURCE);
+    check('OFFICIAL_TRAINS tersedia', Array.isArray(SD.OFFICIAL_TRAINS));
+    check('Total kereta = 22', SD.OFFICIAL_TRAINS.length === 22, 'Ditemukan: ' + SD.OFFICIAL_TRAINS.length);
+
+    var east = SD.OFFICIAL_TRAINS.filter(function(t){return t.direction==='EASTBOUND'});
+    var west = SD.OFFICIAL_TRAINS.filter(function(t){return t.direction==='WESTBOUND'});
+    check('11 kereta arah Timur (EASTBOUND)', east.length === 11, 'Ditemukan: ' + east.length);
+    check('11 kereta arah Barat (WESTBOUND)', west.length === 11, 'Ditemukan: ' + west.length);
+
+    // ─── SKENARIO 1: Yogyakarta → Palur ───
+    html += '<h2>SKENARIO 1: Yogyakarta → Palur</h2>';
+    var s1 = SD.searchSchedules('Yogyakarta', 'Palur');
+    check('Menemukan perjalanan Yogyakarta → Palur', s1.length > 0, s1.length + ' perjalanan');
+    check('Semua arah EASTBOUND', s1.every(function(r){return r.direction==='EASTBOUND'}), '');
+    if (s1.length > 0) {
+      check('Kereta pertama adalah KA 402', s1[0].trainNumber === 'KA 402', 'Aktual: ' + s1[0].trainNumber);
+      check('Keberangkatan KA 402 dari Yogyakarta = 05:15', s1[0].departureTime === '05:15', 'Aktual: ' + s1[0].departureTime);
+      check('Kedatangan KA 402 ke Palur = 06:47', s1[0].arrivalTime === '06:47', 'Aktual: ' + s1[0].arrivalTime);
+    }
+    s1.forEach(function(r){
+      html += '<div class="row info">  ' + r.trainNumber + ' | Dep: ' + r.departureTime + ' | Arr: ' + r.arrivalTime + ' | Dur: ' + r.durationDisplay + '</div>';
+    });
+
+    // ─── SKENARIO 2: Lempuyangan → Klaten ───
+    html += '<h2>SKENARIO 2: Lempuyangan → Klaten</h2>';
+    var s2 = SD.searchSchedules('Lempuyangan', 'Klaten');
+    check('Menemukan perjalanan Lempuyangan → Klaten', s2.length > 0, s2.length + ' perjalanan');
+    check('Semua arah EASTBOUND', s2.every(function(r){return r.direction==='EASTBOUND'}), '');
+    if (s2.length > 0) {
+      check('Jam Lempuyangan bukan jam Yogyakarta', s2[0].departureTime !== '05:15', 'Aktual dep: ' + s2[0].departureTime);
+      // KA 402: Lempuyangan 05:21, Klaten 05:57
+      check('KA 402 Lempuyangan = 05:21', s2[0].departureTime === '05:21', 'Aktual: ' + s2[0].departureTime);
+      check('KA 402 Klaten = 05:57', s2[0].arrivalTime === '05:57', 'Aktual: ' + s2[0].arrivalTime);
+    }
+    s2.forEach(function(r){
+      html += '<div class="row info">  ' + r.trainNumber + ' | Dep Lempuyangan: ' + r.departureTime + ' | Arr Klaten: ' + r.arrivalTime + '</div>';
+    });
+
+    // ─── SKENARIO 3: Maguwo → Solo Balapan ───
+    html += '<h2>SKENARIO 3: Maguwo → Solo Balapan</h2>';
+    var s3 = SD.searchSchedules('Maguwo', 'Solo Balapan');
+    check('Menemukan perjalanan Maguwo → Solo Balapan', s3.length > 0, s3.length + ' perjalanan');
+    if (s3.length > 0) {
+      // KA 402: Maguwo 05:31, Solo Balapan 06:33
+      check('KA 402 Maguwo = 05:31', s3[0].departureTime === '05:31', 'Aktual: ' + s3[0].departureTime);
+      check('KA 402 Solo Balapan = 06:33', s3[0].arrivalTime === '06:33', 'Aktual: ' + s3[0].arrivalTime);
+    }
+    s3.forEach(function(r){
+      html += '<div class="row info">  ' + r.trainNumber + ' | Dep Maguwo: ' + r.departureTime + ' | Arr Solo Balapan: ' + r.arrivalTime + '</div>';
+    });
+
+    // ─── SKENARIO 4: Palur → Yogyakarta ───
+    html += '<h2>SKENARIO 4: Palur → Yogyakarta</h2>';
+    var s4 = SD.searchSchedules('Palur', 'Yogyakarta');
+    check('Menemukan perjalanan Palur → Yogyakarta', s4.length > 0, s4.length + ' perjalanan');
+    check('Semua arah WESTBOUND', s4.every(function(r){return r.direction==='WESTBOUND'}), '');
+    if (s4.length > 0) {
+      check('Kereta pertama adalah KA 401', s4[0].trainNumber === 'KA 401', 'Aktual: ' + s4[0].trainNumber);
+      check('KA 401 Palur = 05:00', s4[0].departureTime === '05:00', 'Aktual: ' + s4[0].departureTime);
+      check('KA 401 Yogyakarta = 06:32', s4[0].arrivalTime === '06:32', 'Aktual: ' + s4[0].arrivalTime);
+    }
+    s4.forEach(function(r){
+      html += '<div class="row info">  ' + r.trainNumber + ' | Dep Palur: ' + r.departureTime + ' | Arr Yogyakarta: ' + r.arrivalTime + '</div>';
+    });
+
+    // ─── SKENARIO 5: Klaten → Lempuyangan ───
+    html += '<h2>SKENARIO 5: Klaten → Lempuyangan</h2>';
+    var s5 = SD.searchSchedules('Klaten', 'Lempuyangan');
+    check('Menemukan perjalanan Klaten → Lempuyangan', s5.length > 0, s5.length + ' perjalanan');
+    check('Semua arah WESTBOUND', s5.every(function(r){return r.direction==='WESTBOUND'}), '');
+    if (s5.length > 0) {
+      // KA 401: Klaten 05:50, Lempuyangan 06:26
+      check('KA 401 Klaten = 05:50', s5[0].departureTime === '05:50', 'Aktual: ' + s5[0].departureTime);
+      check('KA 401 Lempuyangan = 06:26', s5[0].arrivalTime === '06:26', 'Aktual: ' + s5[0].arrivalTime);
+    }
+    s5.forEach(function(r){
+      html += '<div class="row info">  ' + r.trainNumber + ' | Dep Klaten: ' + r.departureTime + ' | Arr Lempuyangan: ' + r.arrivalTime + '</div>';
+    });
+
+    // ─── Validasi tambahan: arah tidak boleh salah ───
+    html += '<h2>VALIDASI ARAH PERJALANAN</h2>';
+    var wrongDir = SD.searchSchedules('Yogyakarta', 'Palur').filter(function(r){return r.direction==='WESTBOUND'});
+    check('Tidak ada kereta WESTBOUND pada rute Yogyakarta→Palur', wrongDir.length === 0, 'WESTBOUND ditemukan: ' + wrongDir.length);
+
+    var wrongDir2 = SD.searchSchedules('Palur', 'Yogyakarta').filter(function(r){return r.direction==='EASTBOUND'});
+    check('Tidak ada kereta EASTBOUND pada rute Palur→Yogyakarta', wrongDir2.length === 0, 'EASTBOUND ditemukan: ' + wrongDir2.length);
+
+    // ─── Validasi getFullRouteDetails ───
+    html += '<h2>VALIDASI DETAIL RUTE (Timeline)</h2>';
+    var detail = SD.getFullRouteDetails('KA 402', 'Lempuyangan', 'Klaten');
+    check('getFullRouteDetails KA 402 tersedia', !!detail, '');
+    if (detail) {
+      check('Memiliki stops', detail.stops.length > 0, detail.stops.length + ' stops');
+      check('User origin = Lempuyangan', detail.userOrigin === 'Lempuyangan', '');
+      check('User destination = Klaten', detail.userDestination === 'Klaten', '');
+      check('userDepartureTime = 05:21', detail.userDepartureTime === '05:21', 'Aktual: ' + detail.userDepartureTime);
+      check('userArrivalTime = 05:57', detail.userArrivalTime === '05:57', 'Aktual: ' + detail.userArrivalTime);
+
+      var origStop = detail.stops.find(function(s){return s.isUserOrigin});
+      var destStop = detail.stops.find(function(s){return s.isUserDestination});
+      check('Stop Lempuyangan tandai isUserOrigin', !!origStop, origStop ? origStop.stationName : 'tidak ditemukan');
+      check('Stop Klaten tandai isUserDestination', !!destStop, destStop ? destStop.stationName : 'tidak ditemukan');
+    }
+
+    // ─── Ringkasan ───
+    html += '<div class="summary"><strong>HASIL PENGUJIAN:</strong> ' +
+      '<span class="pass">' + passed + ' LULUS</span> / ' +
+      '<span class="fail">' + failed + ' GAGAL</span> ' +
+      (failed === 0 ? '— ✅ Semua pengujian berhasil!' : '— ⚠️ Ada pengujian yang gagal.') +
+      '<br><br><strong>Sumber Data:</strong> ' + SD.DATA_SOURCE.provider +
+      '<br><strong>Pembaruan:</strong> ' + SD.DATA_SOURCE.lastUpdated +
+      '<br><strong>Disclaimer:</strong> ' + SD.DATA_SOURCE.disclaimer +
+      '</div>';
+
+    out.innerHTML = html;
+  })();
+  </script>
+</body>
+</html>

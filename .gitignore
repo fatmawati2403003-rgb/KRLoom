@@ -1,0 +1,55 @@
+# ============================================================
+# .gitignore — KRL Density MVP
+# ============================================================
+
+# Cache & Log Browser / Sistem
+*.log
+*.tmp
+*.bak
+*.swp
+*.DS_Store
+Thumbs.db
+desktop.ini
+
+# Folder Sistem & IDE
+.vscode/
+.idea/
+.antigravity/
+__pycache__/
+*.pyc
+
+# Folder Dependensi (Tidak Digunakan - Zero Dependency Project)
+node_modules/
+vendor/
+
+# Folder Build & Output Sementara
+dist/
+build/
+out/
+.cache/
+
+# Folder Git Internal
+.git/
+
+# File Konfigurasi Lokal yang Tidak Relevan
+*.env
+.env.local
+.env.production
+
+# File ZIP / Arsip Sementara
+*.zip
+*.tar.gz
+*.rar
+
+# File Screenshot & Laporan Lama (Sudah Tidak Relevan)
+tests/laporan_tahap_*.html
+tests/app-*screenshot*.png
+tests/app-*tahap*.png
+tests/core-tests-screenshot.png
+tests/e2e-tests-screenshot.png
+tests/simulation-tests-screenshot.png
+tests/app-mobile-*.png
+
+# Catatan: Seluruh file HTML, CSS, dan JavaScript produksi proyek ini
+# berjalan sebagai static site tanpa backend. Tidak ada variabel sensitif
+# yang perlu disembunyikan—akun admin adalah kredensial demo prototipe.

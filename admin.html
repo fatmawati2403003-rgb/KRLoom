@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Petugas &amp; Admin — KRL Density MVP</title>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/officer.css">
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+
+  <!-- Penanda Data Wajib & Banner Simulasi -->
+  <div class="disclaimer-banner" role="alert">
+    ⚠️ AREA PETUGAS / ADMIN — SIMULASI PROTOTIPE AKADEMIK
+  </div>
+
+  <!-- ================= TAMPILAN 1: FORM LOGIN ADMIN (JIKA BELUM LOGIN) ================= -->
+  <div id="admin-login-view" class="login-wrapper">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="login-icon">🔐</div>
+        <h1 class="login-title">Masuk Petugas / Admin</h1>
+        <p class="login-subtitle">Sistem Pengelolaan Jadwal &amp; Simulasi Kepadatan KRL</p>
+      </div>
+
+      <!-- Kotak Bantuan Kredensial Demo Prototipe -->
+      <div class="demo-credentials-box">
+        <strong>🔑 Akun Simulasi Prototipe:</strong>
+        <div>Username: <code>admin</code></div>
+        <div>Password: <code>admin123</code></div>
+      </div>
+
+      <!-- Pesan Peringatan Batasan Keamanan Prototipe -->
+      <div class="alert alert-warning" style="font-size: 0.775rem; margin-bottom: 16px;">
+        <strong>Catatan Keamanan:</strong> Login ini adalah simulasi di browser untuk demonstrasi akademik dan belum aman untuk sistem produksi nyata tanpa backend server.
+      </div>
+
+      <!-- Pesan Kesalahan Login Gagal -->
+      <div id="login-error-alert" class="alert alert-danger hidden" role="alert"></div>
+
+      <!-- Form Login -->
+      <form id="admin-login-form" onsubmit="return false;">
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label for="login-username" class="form-label">Username atau Email</label>
+          <input type="text" id="login-username" class="form-input" placeholder="Masukkan 'admin'" required autocomplete="username">
+        </div>
+
+        <div class="form-group" style="margin-bottom: 18px;">
+          <label for="login-password" class="form-label">Kata Sandi (Password)</label>
+          <input type="password" id="login-password" class="form-input" placeholder="Masukkan 'admin123'" required autocomplete="current-password">
+        </div>
+
+        <button type="submit" id="btn-submit-login" class="btn-login">
+          <span>Masuk sebagai Petugas</span> &rarr;
+        </button>
+      </form>
+
+      <div class="login-footer-links">
+        <a href="index.html">&larr; Kembali ke Halaman Penumpang</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= TAMPILAN 2: DASHBOARD ADMIN (SETELAH LOGIN) ================= -->
+  <div id="admin-dashboard-view" class="hidden">
+    
+    <!-- Header Dashboard Admin -->
+    <header class="admin-header">
+      <div class="container">
+        <div class="admin-header-inner">
+          <div class="admin-brand">
+            <span class="admin-badge">ADMIN / PETUGAS</span>
+            <div>
+              <h1 class="brand-title" style="font-size: 1.15rem; margin: 0;">Dashboard Pengendalian KRL Density</h1>
+              <div style="font-size: 0.8rem; color: #64748b;" id="admin-user-greeting">
+                Selamat bertugas, Administrator KRL
+              </div>
+            </div>
+          </div>
+
+          <div class="admin-actions">
+            <a href="index.html" class="btn-nav-user" target="_blank" title="Buka Halaman Penumpang di Tab Baru">
+              🌐 Lihat Halaman Penumpang
+            </a>
+            <button id="btn-admin-logout" class="btn-logout" title="Keluar dari Sesi Petugas">
+              🚪 Keluar (Logout)
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="container">
+      
+      <!-- Sub-Navigasi Tab Dashboard -->
+      <nav class="admin-subnav" role="tablist">
+        <button id="tab-btn-schedules" class="subnav-btn active" role="tab" aria-selected="true" aria-controls="panel-schedules">
+          📋 Manajemen Jadwal KRL
+        </button>
+        <button id="tab-btn-telemetry" class="subnav-btn" role="tab" aria-selected="false" aria-controls="panel-telemetry">
+          ⚙️ Mesin Simulasi &amp; Telemetri
+        </button>
+      </nav>
+
+      <!-- Feedback Alert Operasi CRUD -->
+      <div id="admin-feedback-alert" class="alert alert-success hidden" role="alert"></div>
+
+      <!-- ================= SUB-PANEL 1: MANAJEMEN JADWAL KRL ================= -->
+      <section id="panel-schedules" role="tabpanel" aria-labelledby="tab-btn-schedules">
+        <div class="officer-panel" style="padding: 20px;">
+          
+          <div class="crud-header">
+            <div>
+              <h2 class="crud-title">Pengelolaan Data Jadwal KRL Yogyakarta–Solo</h2>
+              <p style="margin: 4px 0 0 0; font-size: 0.825rem; color: #64748b;">
+                Data jadwal disimpan lokal di browser (LocalStorage) dan langsung disinkronkan ke halaman pencarian penumpang.
+              </p>
+            </div>
+            <div class="crud-actions-bar">
+              <button id="btn-open-add-modal" class="btn-add">
+                ➕ Tambah Jadwal Baru
+              </button>
+              <button id="btn-reset-schedules" class="btn-reset-default" title="Pulihkan data jadwal default">
+                ↺ Reset ke Data Default
+              </button>
+            </div>
+          </div>
+
+          <!-- Tabel Jadwal -->
+          <div class="table-responsive" style="margin-top: 16px;">
+            <table class="data-table" id="admin-schedule-table">
+              <thead>
+                <tr>
+                  <th style="width: 12%;">No. KA</th>
+                  <th style="width: 14%;">Trip / Trainset</th>
+                  <th style="width: 18%;">Stasiun Asal &amp; Berangkat</th>
+                  <th style="width: 18%;">Stasiun Tujuan &amp; Tiba</th>
+                  <th style="width: 12%;">Skenario</th>
+                  <th style="width: 14%;">Catatan</th>
+                  <th style="width: 12%; text-align: center;">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="admin-schedule-tbody">
+                <!-- Diisi secara dinamis oleh adminView.js -->
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ================= SUB-PANEL 2: KENDALI MESIN SIMULASI & TELEMETRI ================= -->
+      <section id="panel-telemetry" class="hidden" role="tabpanel" aria-labelledby="tab-btn-telemetry">
+        <div class="officer-panel">
+          <div class="panel-header">
+            <h2 class="panel-title">Panel Petugas &amp; Kendali Mesin Simulasi</h2>
+            <p class="panel-subtitle">Pemantauan otomatis siklus Rendah &rarr; Sedang &rarr; Tinggi (180 detik/skenario, update 10 detik).</p>
+          </div>
+
+          <!-- Storage Error Alert -->
+          <div id="storage-error-alert" class="alert alert-danger hidden" role="alert"></div>
+
+          <!-- Kartu Telemetri Status -->
+          <div class="status-grid">
+            <div class="status-card">
+              <div class="status-label">Status Simulasi</div>
+              <div id="telemetry-status" class="status-value color-text-muted">Berhenti</div>
+            </div>
+            <div class="status-card">
+              <div class="status-label">Skenario Aktif</div>
+              <div id="telemetry-scenario" class="status-value">Rendah</div>
+            </div>
+            <div class="status-card">
+              <div class="status-label">Sisa Waktu Skenario</div>
+              <div id="telemetry-countdown" class="status-value" style="font-family: monospace;">03:00</div>
+            </div>
+            <div class="status-card">
+              <div class="status-label">Siklus Selesai</div>
+              <div id="telemetry-cycles" class="status-value">0 Siklus</div>
+            </div>
+            <div class="status-card">
+              <div class="status-label">Total Kapasitas Asumsi</div>
+              <div id="telemetry-capacity" class="status-value" style="font-size: 0.95rem;">1.500 Orang (250/gerbong)</div>
+            </div>
+          </div>
+
+          <!-- Kontrol Mesin Simulasi -->
+          <div class="control-section">
+            <div class="control-header">
+              <div>
+                <h3 class="control-title">Kontrol Operasional Simulasi</h3>
+                <div class="control-note">Urutan otomatis: Rendah (3m) &rarr; Sedang (3m) &rarr; Tinggi (3m) &rarr; Looping tak terbatas.</div>
+              </div>
+              <div style="font-size: 0.8rem; color: #475569;">
+                Waktu Mulai: <strong id="telemetry-start-time">--:--:-- WIB</strong>
+              </div>
+            </div>
+
+            <div class="btn-group">
+              <button id="btn-start-simulation" class="btn btn-start">
+                ▶ Mulai Simulasi
+              </button>
+              <button id="btn-stop-simulation" class="btn btn-stop disabled" disabled>
+                ⏹ Minta Berhenti
+              </button>
+            </div>
+            <div style="font-size: 0.775rem; color: #64748b; margin-top: 8px;">
+              <em>* Catatan Graceful Stop: Menekan tombol "Minta Berhenti" akan membiarkan skenario aktif selesai hingga 00:00 sebelum sistem berhenti.</em>
+            </div>
+          </div>
+
+          <!-- Tabel Riwayat Pergantian Skenario -->
+          <div class="table-section">
+            <div class="table-header-row">
+              <h3 class="table-title">Riwayat Pergantian Skenario &amp; Event Log</h3>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table" id="transition-logs-table">
+                <thead>
+                  <tr>
+                    <th style="width: 25%;">Waktu (WIB)</th>
+                    <th style="width: 25%;">Peristiwa</th>
+                    <th style="width: 30%;">Transisi Skenario</th>
+                    <th style="width: 20%;">Nomor Siklus</th>
+                  </tr>
+                </thead>
+                <tbody id="transition-logs-body">
+                  <tr><td colspan="4" class="text-center text-muted">Belum ada catatan pergantian skenario.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Tabel Peninjau Snapshot Riwayat 10 Detik -->
+          <div class="table-section">
+            <div class="table-header-row">
+              <h3 class="table-title">Riwayat Snapshot Kepadatan (Update Tiap 10 Detik)</h3>
+              <span id="snapshot-count-badge" class="badge badge-normal">0 Snapshot Tersimpan</span>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table" id="snapshot-table">
+                <thead>
+                  <tr>
+                    <th style="width: 14%;">Waktu (WIB)</th>
+                    <th style="width: 10%;">Siklus</th>
+                    <th style="width: 10%;">Skenario</th>
+                    <th style="width: 10%;">Tick</th>
+                    <th style="width: 12%;">Rank #1</th>
+                    <th style="width: 30%;">Ringkasan Kepadatan (K1 s.d. K6)</th>
+                    <th style="width: 14%;">Kapasitas</th>
+                  </tr>
+                </thead>
+                <tbody id="snapshot-table-body">
+                  <tr><td colspan="7" class="text-center text-muted">Belum ada snapshot simulasi yang tercatat.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Section Reset Riwayat Demonstrasi -->
+          <div class="history-reset-box">
+            <div>
+              <strong>Pengelolaan Memori Riwayat Browser:</strong>
+              <div style="font-size: 0.8rem; color: #64748b;">
+                Data riwayat disimpan lokal di browser (LocalStorage) maksimal 10 siklus terakhir dan bukan database cloud produksi.
+              </div>
+            </div>
+            <button id="btn-reset-history" class="btn btn-danger-outline">
+              🗑️ Bersihkan Riwayat Simulasi Lokal
+            </button>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Footer Admin -->
+    <footer class="app-footer" style="margin-top: 40px;">
+      <div class="container">
+        <p><strong>Panel Pengendali Petugas KRL Density MVP v4.2</strong></p>
+        <p>Data jadwal dan telemetri simulasi bersifat lokal browser untuk keperluan demonstrasi akademik.</p>
+      </div>
+    </footer>
+  </div>
+
+  <!-- ================= MODAL TAMBAH JADWAL ================= -->
+  <div id="modal-add-schedule" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="modal-add-title">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="modal-add-title" class="modal-title">Tambah Jadwal KRL Baru</h3>
+        <button type="button" class="modal-close-btn" data-close-modal="modal-add-schedule">&times;</button>
+      </div>
+      <form id="form-add-schedule" onsubmit="return false;">
+        <div class="modal-body">
+          <div id="modal-add-error" class="alert alert-danger hidden" role="alert" style="margin-bottom: 12px;"></div>
+          
+          <div class="modal-form-grid">
+            <div class="form-group">
+              <label for="add-train-number" class="form-label">Nomor KA *</label>
+              <input type="text" id="add-train-number" class="form-input" placeholder="Contoh: KA 114" required>
+            </div>
+            <div class="form-group">
+              <label for="add-trip-id" class="form-label">ID Perjalanan (Trip ID)</label>
+              <input type="text" id="add-trip-id" class="form-input" placeholder="Contoh: SIM-TRIP-013">
+            </div>
+
+            <div class="form-group">
+              <label for="add-origin-station" class="form-label">Stasiun Asal *</label>
+              <select id="add-origin-station" class="form-select" required></select>
+            </div>
+            <div class="form-group">
+              <label for="add-dest-station" class="form-label">Stasiun Tujuan *</label>
+              <select id="add-dest-station" class="form-select" required></select>
+            </div>
+
+            <div class="form-group">
+              <label for="add-dep-time" class="form-label">Waktu Berangkat (HH:mm) *</label>
+              <input type="time" id="add-dep-time" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label for="add-arr-time" class="form-label">Waktu Tiba (HH:mm) *</label>
+              <input type="time" id="add-arr-time" class="form-input" required>
+            </div>
+
+            <div class="form-group">
+              <label for="add-trainset-id" class="form-label">ID Trainset</label>
+              <input type="text" id="add-trainset-id" class="form-input" placeholder="Contoh: SIM-TS-01">
+            </div>
+            <div class="form-group">
+              <label for="add-scenario" class="form-label">Skenario Kepadatan Awal</label>
+              <select id="add-scenario" class="form-select">
+                <option value="LOW">Rendah (Low - Hijau)</option>
+                <option value="MEDIUM" selected>Sedang (Medium - Kuning)</option>
+                <option value="HIGH">Tinggi (High - Merah)</option>
+              </select>
+            </div>
+
+            <div class="form-group full-col">
+              <label for="add-notes" class="form-label">Catatan / Keterangan</label>
+              <input type="text" id="add-notes" class="form-input" placeholder="Contoh: Data Simulasi Jadwal Tambahan">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-cancel" data-close-modal="modal-add-schedule">Batal</button>
+          <button type="submit" id="btn-save-new-schedule" class="btn-add">Simpan Jadwal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= MODAL UBAH JADWAL ================= -->
+  <div id="modal-edit-schedule" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="modal-edit-title">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="modal-edit-title" class="modal-title">Ubah Jadwal KRL</h3>
+        <button type="button" class="modal-close-btn" data-close-modal="modal-edit-schedule">&times;</button>
+      </div>
+      <form id="form-edit-schedule" onsubmit="return false;">
+        <input type="hidden" id="edit-schedule-id">
+        <div class="modal-body">
+          <div id="modal-edit-error" class="alert alert-danger hidden" role="alert" style="margin-bottom: 12px;"></div>
+          
+          <div class="modal-form-grid">
+            <div class="form-group">
+              <label for="edit-train-number" class="form-label">Nomor KA *</label>
+              <input type="text" id="edit-train-number" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label for="edit-trip-id" class="form-label">ID Perjalanan (Trip ID)</label>
+              <input type="text" id="edit-trip-id" class="form-input">
+            </div>
+
+            <div class="form-group">
+              <label for="edit-origin-station" class="form-label">Stasiun Asal *</label>
+              <select id="edit-origin-station" class="form-select" required></select>
+            </div>
+            <div class="form-group">
+              <label for="edit-dest-station" class="form-label">Stasiun Tujuan *</label>
+              <select id="edit-dest-station" class="form-select" required></select>
+            </div>
+
+            <div class="form-group">
+              <label for="edit-dep-time" class="form-label">Waktu Berangkat (HH:mm) *</label>
+              <input type="time" id="edit-dep-time" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label for="edit-arr-time" class="form-label">Waktu Tiba (HH:mm) *</label>
+              <input type="time" id="edit-arr-time" class="form-input" required>
+            </div>
+
+            <div class="form-group">
+              <label for="edit-trainset-id" class="form-label">ID Trainset</label>
+              <input type="text" id="edit-trainset-id" class="form-input">
+            </div>
+            <div class="form-group">
+              <label for="edit-scenario" class="form-label">Skenario Kepadatan</label>
+              <select id="edit-scenario" class="form-select">
+                <option value="LOW">Rendah (Low - Hijau)</option>
+                <option value="MEDIUM">Sedang (Medium - Kuning)</option>
+                <option value="HIGH">Tinggi (High - Merah)</option>
+              </select>
+            </div>
+
+            <div class="form-group full-col">
+              <label for="edit-notes" class="form-label">Catatan / Keterangan</label>
+              <input type="text" id="edit-notes" class="form-input">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-cancel" data-close-modal="modal-edit-schedule">Batal</button>
+          <button type="submit" id="btn-save-edit-schedule" class="btn-add">Simpan Perubahan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= MODAL KONFIRMASI HAPUS JADWAL ================= -->
+  <div id="modal-confirm-delete" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="modal-del-title">
+    <div class="modal-dialog" style="max-width: 440px;">
+      <div class="modal-header">
+        <h3 id="modal-del-title" class="modal-title">Konfirmasi Hapus Jadwal</h3>
+        <button type="button" class="modal-close-btn" data-close-modal="modal-confirm-delete">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="delete-schedule-id">
+        <p style="margin: 0 0 10px 0; font-size: 0.95rem; color: #1e293b;">
+          Apakah Anda yakin ingin menghapus jadwal <strong id="delete-schedule-name">--</strong>?
+        </p>
+        <p style="margin: 0; font-size: 0.825rem; color: #dc2626;">
+          Tindakan ini akan menghapus jadwal secara permanen dari penyimpanan lokal browser.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" data-close-modal="modal-confirm-delete">Batal</button>
+        <button type="button" id="btn-confirm-delete-schedule" class="btn-confirm-delete">Hapus Jadwal</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Script Modular -->
+  <script src="js/config/constants.js"></script>
+  <script src="js/config/presets.js"></script>
+  <script src="js/core/calculator.js"></script>
+  <script src="js/core/validator.js"></script>
+  <script src="js/core/recommender.js"></script>
+  <script src="js/core/auth.js"></script>
+  <script src="js/engine/historyStore.js"></script>
+  <script src="js/engine/scheduleStore.js"></script>
+  <script src="js/engine/simulationEngine.js"></script>
+  <script src="js/ui/simulationView.js"></script>
+  <script src="js/ui/adminView.js"></script>
+</body>
+</html>

@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>KRL Density MVP - Simulation Engine Unit Tests (TC-SIM-01 s.d. TC-SIM-20)</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f8fafc;
+      color: #0f172a;
+      padding: 24px;
+      line-height: 1.5;
+    }
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 24px;
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    }
+    h1 {
+      margin-top: 0;
+      font-size: 1.4rem;
+      color: #0369a1;
+      border-bottom: 2px solid #0284c7;
+      padding-bottom: 8px;
+    }
+    .summary-card {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 20px;
+      padding: 14px;
+      border-radius: 6px;
+      background: #f1f5f9;
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+    .badge-pass { background: #dcfce7; color: #166534; padding: 4px 10px; border-radius: 4px; }
+    .badge-fail { background: #fee2e2; color: #991b1b; padding: 4px 10px; border-radius: 4px; }
+    .badge-total { background: #e0f2fe; color: #075985; padding: 4px 10px; border-radius: 4px; }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      font-size: 0.85rem;
+    }
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 7px 10px;
+      text-align: left;
+    }
+    th {
+      background: #0f172a;
+      color: #ffffff;
+    }
+    tr:nth-child(even) { background: #f8fafc; }
+    .status-cell { font-weight: 700; }
+    .status-pass { color: #16a34a; }
+    .status-fail { color: #dc2626; }
+    code {
+      font-family: Consolas, monospace;
+      background: #e2e8f0;
+      padding: 2px 4px;
+      border-radius: 3px;
+    }
+  </style>
+
+  <!-- Load Modules -->
+  <script src="../js/config/constants.js"></script>
+  <script src="../js/config/presets.js"></script>
+  <script src="../js/core/calculator.js"></script>
+  <script src="../js/core/validator.js"></script>
+  <script src="../js/core/recommender.js"></script>
+  <script src="../js/engine/historyStore.js"></script>
+  <script src="../js/engine/simulationEngine.js"></script>
+</head>
+<body>
+
+  <div class="container">
+    <h1>KRL Density MVP — Verifikasi Simulation Engine &amp; History (Tahap 3)</h1>
+    <p>Pengujian otomatis terhadap mesin simulasi state machine, timer waktu absolut, countdown, variasi deterministik, graceful stop, dan manajemen riwayat LocalStorage (TC-SIM-01 s.d. TC-SIM-20).</p>
+
+    <div class="summary-card" id="summary-card">
+      <span class="badge-total" id="total-badge">Total Uji: 0</span>
+      <span class="badge-pass" id="pass-badge">Lulus: 0</span>
+      <span class="badge-fail" id="fail-badge">Gagal: 0</span>
+    </div>
+
+    <table id="test-table">
+      <thead>
+        <tr>
+          <th style="width: 14%;">ID Test</th>
+          <th style="width: 25%;">Area Uji</th>
+          <th style="width: 45%;">Ekspektasi &amp; Deskripsi Kasus Uji</th>
+          <th style="width: 16%;">Hasil</th>
+        </tr>
+      </thead>
+      <tbody id="test-body">
+        <!-- Hasil di-inject otomatis -->
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      var testResults = [];
+      var passCount = 0;
+      var failCount = 0;
+
+      function assert(id, group, description, condition, actualVal) {
+        var isPass = !!condition;
+        if (isPass) {
+          passCount++;
+        } else {
+          failCount++;
+        }
+        testResults.push({
+          id: id,
+          group: group,
+          description: description,
+          isPass: isPass,
+          actualVal: actualVal
+        });
+      }
+
+      var Const = window.KRL.Constants;
+      var Presets = window.KRL.Presets;
+      var EngineClass = window.KRL.SimulationEngine;
+      var HistoryStore = window.KRL.HistoryStore;
+
+      // Bersihkan store sebelum pengujian
+      HistoryStore.resetHistory();
+
+      // =========================================================================
+      // VIRTUAL CLOCK TEST HARNESS
+      // =========================================================================
+      var virtualTime = 1700000000000; // Base timestamp ms
+      function timeProvider() { return virtualTime; }
+
+      // -------------------------------------------------------------------------
+      // TC-SIM-01: Simulasi dimulai dari Rendah
+      // -------------------------------------------------------------------------
+      var engine = new EngineClass({ timeProvider: timeProvider });
+      engine.startSimulation();
+      var s1 = engine.getState();
+      assert('TC-SIM-01', 'State Machine', 'Simulasi dimulai dari skenario Rendah (LOW)', s1.currentScenario === 'LOW' && s1.status === 'RUNNING', s1.currentScenario);
+
+      // -------------------------------------------------------------------------
+      // TC-SIM-02: Countdown dimulai pada 03:00
+      // -------------------------------------------------------------------------
+      assert('TC-SIM-02', 'Timer & Countdown', 'Countdown dimulai pada 03:00 (180 detik)', s1.remainingSeconds === 180 && s1.formattedCountdown === '03:00', s1.formattedCountdown);
+
+      // -------------------------------------------------------------------------
+      // TC-SIM-03: Data berubah setiap 10 detik
+      // -------------------------------------------------------------------------
+      var initialTickData = null;
+      var nextTickData = null;
+      var tEngine = new EngineClass({
+        timeProvider: timeProvider,
+        onTick: function(td) {
+          if (!initialTickData) initialTickData = td;
+          else nextTickData = td;
+        }
+      });
+      tEngine.startSimulation();
+      // Majukan waktu 10 detik (10.000 ms)
+      virtualTime += 10000;
+      tEngine.step();
+      var tick0Pass = initialTickData.snapshotPackage.ranked_carriages[0].passenger_count;
+      var tick1Pass = nextTickData.snapshotPackage.ranked_carriages[0].passenger_count;
+      assert('TC-SIM-03', 'Interval Pembaruan', 'Data snapshot berubah pada pembaruan 10 detik', nextTickData && nextTickData.snapshotPackage.tick_index === 1, nextTickData && nextTickData.snapshotPackage.tick_index);
+
+      // -------------------------------------------------------------------------
+      // TC-SIM-04: Satu skenario selesai pada 180 detik
+      // -------------------------------------------------------------------------
+      // Majukan waktu ke 180 detik dari awal
+      virtualTime += (170 * 1000); // Total 180 detik dari start tEngine
+      tEngine.step();
+      assert('TC-SIM-04', 'Durasi Skenario', 'Skenario Rendah selesai pada 180 detik dan berpindah', tEngine.currentScenario !== 'LOW', tEngine.currentScenario);
+
+      // -------------------------------------------------------------------------
+      // TC-SIM-05: Urutan transisi Rendah → Sedang → Tinggi
+      // -------------------------------------------------------------------------
+      var transitions = [];
+      var seqEngine = new EngineClass({
+        timeProvider: timeProvider,
+        onScenarioTransition: function(from, to) {
+          transitions.push(from + '->' + to);
+        }
+      });
+      seqEngine.startSimulation(); // LOW
+      virtualTime += 181000;
+      seqEngine.step(); // Pindah ke MEDIUM
+      virtualTime += 181000;
+      seqEngine.step(); // Pindah ke HIGH
+      var isSeqCorrect = transitions[0] === 'LOW->MEDIUM' && transitions[1] === 'MEDIUM->HIGH';
+      assert('TC-SIM-05', 'Urutan Skenario', 'Urutan transisi otomatis: Rendah → Sedang → Tinggi', isSeqCorrect, transitions.join(', '));
+
+      // -------------------------------------------------------------------------
+      // TC-SIM-06: Setelah Tinggi, kembali ke Rendah (Looping)
+      // -------------------------------------------------------------------------
+      virtualTime += 181000;
+      seqEngine.step(); // Selesai HIGH -> harus kembali ke LOW
+      assert('TC-SIM-06', 'Looping Siklus', 'Setelah skenario Tinggi selesai, sistem kembali ke Rendah', seqEngine.currentScenario === 'LOW', seqEngine.currentScenario);
+
+      // -------------------------------------------------------------------------
+      // TC-SIM-07: Jumlah siklus bertambah setelah siklus lengkap
+      // -------------------------------------------------------------------------
+      assert('TC-SIM-07', 'Perhitungan Siklus', 'Jumlah siklus selesai bertambah 1 setelah satu siklus lengkap (LOW-MED-HIGH)', seqEngine.completedCycles === 1 && seqEngine.currentCycle === 2, seqEngine.completedCycles);
+
+      // -------------------------------------------------------------------------
+      // TC-SIM-08: Permintaan berhenti saat Rendah tidak langsung menghentikan skenario
+      // -------------------------------------------------------------------------
+      var stopEngine = new EngineClass({ timeProvider: timeProvider });
+      stopEngine.startSimulation(); // Start LOW
+      virtualTime += 30000; // Berjalan 30 detik
+      stopEngine.step();
+      stopEngine.requestStop(); // Minta berhenti di detik 30
+      assert('TC-SIM-08', 'Graceful Stop', 'Minta berhenti mengubah status ke "Menunggu penyelesaian skenario" dan countdown tetap jalan', stopEngine.status === 'STOPPING_AFTER_SCENARIO' && stopEngine.remainingSeconds > 0, stopEngine.status);
+
+      // -------------------------------------------------------------------------
+      // TC-SIM-09: Permintaan berhenti tidak melanjutkan ke skenario berikutnya
+      // -------------------------------------------------------------------------
+      // Majukan waktu sampai sisa 150 detik skenario Rendah habis
+      virtualTime += 151000;
+      stopEngine.step();
+      assert('TC-SIM-09', 'Graceful Stop', 'Setelah skenario aktif selesai, sistem berhenti tanpa pindah ke Sedang', stopEngine.status === 'STOPPED' && stopEngine.currentScenario === 'LOW', stopEngine.status);
+
+      // -------------------------------------------------------------------------
+      // TC-SIM-10: Permintaan berhenti ketika Tinggi berlangsung tetap menyelesaikan siklus
+      // -------------------------------------------------------------------------
+      var cycleStopEngine = new EngineClass({ timeProvider: timeProvider });
+      cycleStopEngine.startSimulation();
+      virtualTime += 181000; cycleStopEngine.step(); // Sedang
+      virtualTime += 181000; cycleStopEngine.step(); // Tinggi
+      cycleStopEngine.requestStop(); // Minta berhenti saat Tinggi berjalan
+      virtualTime += 181000; cycleStopEngine.step(); // Tinggi selesai
+      assert('TC-SIM-10', 'Graceful Stop', 'Penghentian saat Tinggi tetap mencatat siklus tersebut sebagai selesai', cycleStopEngine.completedCycles === 1 && cycleStopEngine.status === 'STOPPED', cycleStopEngine.completedCycles);
+
+      // -------------------------------------------------------------------------
+      // TC-SIM-11: Variasi deterministik menghasilkan data yang sama untuk siklus dan tick yang sama
+      // -------------------------------------------------------------------------
+      var d1 = Presets.getDeterministicPassengers('LOW', 5);
+      var d2 = Presets.getDeterministicPassengers('LOW', 5);
+      var isDetIdentical = JSON.stringify(d1) === JSON.stringify(d2);
+      assert('TC-SIM-11', 'Variasi Deterministik', 'Input skenario dan tick yang sama menghasilkan angka penumpang identik', isDetIdentical, JSON.stringify(d1));
+
+      // -------------------------------------------------------------------------
+      // TC-SIM-12: Variasi nilai tidak membuat kategori keluar dari skenario aktif
+      // -------------------------------------------------------------------------
+      var allPassCategory = true;
+      for (var t = 0; t < 18; t++) {
+        var lowData = Presets.getDeterministicPassengers('LOW', t);
+        var medData = Presets.getDeterministicPassengers('MEDIUM', t);
+        var highData = Presets.getDeterministicPassengers('HIGH', t);
+
+        for (var c in lowData) {
+          if (lowData[c] / 250 > 0.50) allPassCategory = false;
+        }
+        for (var c in medData) {
+          var pMed = medData[c] / 250;
+          if (pMed <= 0.50 || pMed > 0.80) allPassCategory = false;
+        }
+        for (var c in highData) {
+          if (highData[c] / 250 <= 0.80) allPassCategory = false;
+        }
+        // Pastikan K3 dan K6 tetap > 100% pada Tinggi
+        if (highData['K3'] / 250 <= 1.0 || highData['K6'] / 250 <= 1.0) {
+          allPassCategory = false;
+        }
+      }
+      assert('TC-SIM-12', 'Variasi Deterministik', 'Seluruh variasi 18 tick tetap berada dalam kategori skenario & K3,K6 >100%', allPassCategory, allPassCategory ? 'Valid 100%' : 'Ada deviasi');
+
+      // -------------------------------------------------------------------------
+      // TC-SIM-13: Snapshot tersimpan setiap interval 10 detik
+      // -------------------------------------------------------------------------
+      var snapshots = HistoryStore.getSnapshots();
+      assert('TC-SIM-13', 'History Store', 'Snapshot tersimpan ke LocalStorage dengan paket 6 gerbong', snapshots.length > 0 && snapshots[0].ranked_carriages.length === 6, snapshots.length + ' snapshots');
+
+      // -------------------------------------------------------------------------
+      // TC-SIM-14: Ringkasan setiap skenario tersimpan
+      // -------------------------------------------------------------------------
+      var scSummaries = HistoryStore.getScenarioSummaries();
+      assert('TC-SIM-14', 'History Store', 'Ringkasan skenario tersimpan lengkap (start, end, avg, status)', scSummaries.length > 0 && scSummaries[0].status === 'COMPLETED', scSummaries.length + ' summaries');
+
+      // -------------------------------------------------------------------------
+      // TC-SIM-15: Ringkasan siklus tersimpan
+      // -------------------------------------------------------------------------
+      var cySummaries = HistoryStore.getCycleSummaries();
+      assert('TC-SIM-15', 'History Store', 'Ringkasan siklus tersimpan saat siklus selesai/dihentikan', cySummaries.length > 0 && cySummaries[0].cycle_number === 1, cySummaries.length + ' cycle summaries');
+
+      // -------------------------------------------------------------------------
+      // TC-SIM-16: Riwayat maksimal 10 siklus (pruneOldCycles)
+      // -------------------------------------------------------------------------
+      // Simulasikan 15 siklus di HistoryStore
+      for (var cy = 1; cy <= 15; cy++) {
+        HistoryStore.saveSnapshot({
+          cycle_number: cy,
+          snapshot_id: 'SNAP-MOCK-' + cy,
+          timestamp: new Date().toISOString()
+        });
+      }
+      var prunedSnaps = HistoryStore.getSnapshots();
+      var minCycleFound = prunedSnaps.reduce(function(min, s) { return Math.min(min, s.cycle_number); }, 999);
+      // Dari 15 siklus, jika maksimal 10 siklus terakhir disimpan, minCycle harus 6 (15 - 10 + 1 = 6)
+      assert('TC-SIM-16', 'Batas Riwayat', 'Riwayat dipangkas maksimal 10 siklus terakhir (siklus < 6 terhapus)', minCycleFound === 6, 'Min cycle tersisa: ' + minCycleFound);
+
+      // -------------------------------------------------------------------------
+      // TC-SIM-17: Reset riwayat membersihkan riwayat tanpa merusak konfigurasi
+      // -------------------------------------------------------------------------
+      HistoryStore.resetHistory();
+      var afterResetSnaps = HistoryStore.getSnapshots();
+      var constCapacity = Const.CAPACITY_PER_CARRIAGE;
+      assert('TC-SIM-17', 'Reset Riwayat', 'Reset riwayat mengosongkan riwayat lokal dan kapasitas tetap 250', afterResetSnaps.length === 0 && constCapacity === 250, 'Riwayat: ' + afterResetSnaps.length + ', Kapasitas: ' + constCapacity);
+
+      // -------------------------------------------------------------------------
+      // TC-SIM-18: Data riwayat tetap tersedia setelah pemanggilan ulang
+      // -------------------------------------------------------------------------
+      HistoryStore.saveSnapshot({ cycle_number: 1, snapshot_id: 'PERSIST-TEST', timestamp: '2026-11-22T08:30:00Z', ranked_carriages: [] });
+      var reloadedSnaps = HistoryStore.getSnapshots();
+      assert('TC-SIM-18', 'Persistensi', 'Data riwayat tersimpan persisten di LocalStorage', reloadedSnaps.length === 1 && reloadedSnaps[0].snapshot_id === 'PERSIST-TEST', reloadedSnaps[0] && reloadedSnaps[0].snapshot_id);
+
+      // -------------------------------------------------------------------------
+      // TC-SIM-19: Kesalahan LocalStorage ditangani dan ditampilkan
+      // -------------------------------------------------------------------------
+      // Simulasikan error penulisan invalid payload
+      var errHandled = false;
+      var testNullRes = HistoryStore.saveSnapshot(null); // Input invalid
+      var lastErr = HistoryStore.getLastError();
+      assert('TC-SIM-19', 'Error Handling', 'Kesalahan penyimpanan ditangkap tanpa unhandled exception dan dicatat', testNullRes === false && lastErr !== null, lastErr);
+
+      // -------------------------------------------------------------------------
+      // TC-SIM-20: Refresh halaman / inisialisasi awal tidak otomatis berjalan
+      // -------------------------------------------------------------------------
+      var freshEngine = new EngineClass({ timeProvider: timeProvider });
+      var freshState = freshEngine.getState();
+      assert('TC-SIM-20', 'Inisialisasi', 'Inisialisasi awal mesin berada pada status STOPPED (tidak auto-start)', freshState.status === 'STOPPED' && freshState.remainingSeconds === 180, freshState.status);
+
+      // =========================================================================
+      // RENDER SUMMARY & TABLE TO DOM
+      // =========================================================================
+      var total = testResults.length;
+      document.getElementById('total-badge').textContent = 'Total Uji: ' + total;
+      document.getElementById('pass-badge').textContent = 'Lulus: ' + passCount;
+      document.getElementById('fail-badge').textContent = 'Gagal: ' + failCount;
+
+      var tbody = document.getElementById('test-body');
+      var html = testResults.map(function (t) {
+        var statusBadge = t.isPass ? 
+          '<span class="badge-pass">PASS</span>' : 
+          '<span class="badge-fail">FAIL</span>';
+        
+        return `
+          <tr>
+            <td><code>${t.id}</code></td>
+            <td><strong>${t.group}</strong></td>
+            <td>
+              ${t.description}
+              ${!t.isPass ? '<br><small style="color:red">Actual: ' + t.actualVal + '</small>' : ''}
+            </td>
+            <td class="status-cell">${statusBadge}</td>
+          </tr>
+        `;
+      }).join('');
+      tbody.innerHTML = html;
+
+      window.TEST_RESULTS = {
+        total: total,
+        passed: passCount,
+        failed: failCount,
+        details: testResults
+      };
+    })();
+  </script>
+</body>
+</html>

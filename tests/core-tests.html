@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>KRL Density MVP - Core Logic Unit Tests</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f8fafc;
+      color: #0f172a;
+      padding: 24px;
+      line-height: 1.5;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 24px;
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    }
+    h1 {
+      margin-top: 0;
+      font-size: 1.4rem;
+      color: #0369a1;
+      border-bottom: 2px solid #0284c7;
+      padding-bottom: 8px;
+    }
+    .summary-card {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 20px;
+      padding: 14px;
+      border-radius: 6px;
+      background: #f1f5f9;
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+    .badge-pass { background: #dcfce7; color: #166534; padding: 4px 10px; border-radius: 4px; }
+    .badge-fail { background: #fee2e2; color: #991b1b; padding: 4px 10px; border-radius: 4px; }
+    .badge-total { background: #e0f2fe; color: #075985; padding: 4px 10px; border-radius: 4px; }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      font-size: 0.85rem;
+    }
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 8px 10px;
+      text-align: left;
+    }
+    th {
+      background: #0f172a;
+      color: #ffffff;
+    }
+    tr:nth-child(even) { background: #f8fafc; }
+    .status-cell { font-weight: 700; }
+    .status-pass { color: #16a34a; }
+    .status-fail { color: #dc2626; }
+    .test-suite-header {
+      background: #e2e8f0;
+      font-weight: 700;
+      padding: 8px 10px;
+      font-size: 0.9rem;
+      color: #334155;
+    }
+    code {
+      font-family: Consolas, monospace;
+      background: #e2e8f0;
+      padding: 2px 4px;
+      border-radius: 3px;
+    }
+  </style>
+
+  <!-- Load Core Modules -->
+  <script src="../js/config/constants.js"></script>
+  <script src="../js/config/presets.js"></script>
+  <script src="../js/core/calculator.js"></script>
+  <script src="../js/core/validator.js"></script>
+  <script src="../js/core/recommender.js"></script>
+</head>
+<body>
+
+  <div class="container">
+    <h1>KRL Density MVP — Verifikasi Core Logic (Tahap 2)</h1>
+    <p>Pengujian mandiri tanpa framework eksternal untuk validasi kalkulator, klasifikasi kategori, tie-break rekomendasi, dan penanganan data tidak valid.</p>
+
+    <div class="summary-card" id="summary-card">
+      <span class="badge-total" id="total-badge">Total Uji: 0</span>
+      <span class="badge-pass" id="pass-badge">Lulus: 0</span>
+      <span class="badge-fail" id="fail-badge">Gagal: 0</span>
+    </div>
+
+    <table id="test-table">
+      <thead>
+        <tr>
+          <th style="width: 12%;">ID Test</th>
+          <th style="width: 25%;">Kelompok Uji</th>
+          <th style="width: 45%;">Ekspektasi &amp; Deskripsi</th>
+          <th style="width: 18%;">Hasil</th>
+        </tr>
+      </thead>
+      <tbody id="test-body">
+        <!-- Hasil di-inject oleh runner -->
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      var testResults = [];
+      var passCount = 0;
+      var failCount = 0;
+
+      function assert(id, group, description, condition, actualVal) {
+        var isPass = !!condition;
+        if (isPass) {
+          passCount++;
+        } else {
+          failCount++;
+        }
+        testResults.push({
+          id: id,
+          group: group,
+          description: description,
+          isPass: isPass,
+          actualVal: actualVal
+        });
+      }
+
+      var Calc = window.KRL.Calculator;
+      var Rec = window.KRL.Recommender;
+      var Val = window.KRL.Validator;
+      var Presets = window.KRL.Presets;
+      var Const = window.KRL.Constants;
+
+      // ==========================================
+      // TEST A: KALKULASI PERSENTASE
+      // ==========================================
+      var rA1 = Calc.calculateOccupancy(78, 250);
+      assert('TC-A01', 'Test A — Kalkulasi', '78 penumpang / kapasitas 250 harus tepat 31,2%', rA1 === 31.2, rA1);
+
+      var rA2 = Calc.calculateOccupancy(260, 250);
+      assert('TC-A02', 'Test A — Kalkulasi', '260 penumpang / kapasitas 250 harus tepat 104,0% (tidak di-clamp)', rA2 === 104.0, rA2);
+
+      var rA3 = Calc.formatPercentDisplay(31.2);
+      assert('TC-A03', 'Test A — Kalkulasi', 'Format teks 31.2 harus menjadi "31,2%"', rA3 === '31,2%', rA3);
+
+      var rA4 = Calc.calculateOccupancy(-5, 250);
+      assert('TC-A04', 'Test A — Kalkulasi', 'Penumpang negatif (-5) harus menghasilkan null', rA4 === null, rA4);
+
+      // ==========================================
+      // TEST B: KLASIFIKASI KATEGORI
+      // ==========================================
+      var rB1 = Calc.classifyDensity(50.0);
+      assert('TC-B01', 'Test B — Kategori', 'Persentase tepat 50,0% harus Rendah (LOW)', rB1 && rB1.categoryId === 'LOW' && rB1.label === 'Rendah', rB1 && rB1.label);
+
+      var rB2 = Calc.classifyDensity(50.4);
+      assert('TC-B02', 'Test B — Kategori', 'Persentase 50,4% harus Sedang (MEDIUM)', rB2 && rB2.categoryId === 'MEDIUM' && rB2.label === 'Sedang', rB2 && rB2.label);
+
+      var rB3 = Calc.classifyDensity(80.0);
+      assert('TC-B03', 'Test B — Kategori', 'Persentase tepat 80,0% harus Sedang (MEDIUM)', rB3 && rB3.categoryId === 'MEDIUM' && rB3.label === 'Sedang', rB3 && rB3.label);
+
+      var rB4 = Calc.classifyDensity(80.4);
+      assert('TC-B04', 'Test B — Kategori', 'Persentase 80,4% harus Tinggi (HIGH)', rB4 && rB4.categoryId === 'HIGH' && rB4.label === 'Tinggi', rB4 && rB4.label);
+
+      var rB5 = Calc.classifyDensity(100.4);
+      assert('TC-B05', 'Test B — Kategori', 'Persentase 100,4% harus Tinggi + Melebihi Kapasitas', rB5 && rB5.categoryId === 'HIGH' && rB5.isOverCapacity === true && rB5.label.indexOf('Melebihi Kapasitas') !== -1, rB5 && rB5.label);
+
+      var rB6 = Calc.classifyDensity(100.0);
+      assert('TC-B06', 'Test B — Kategori', 'Persentase tepat 100,0% harus Tinggi tanpa Melebihi Kapasitas', rB6 && rB6.categoryId === 'HIGH' && rB6.isOverCapacity === false, rB6 && rB6.isOverCapacity);
+
+      // ==========================================
+      // TEST C: RANKING DAN TIE-BREAK
+      // ==========================================
+      // Skenario Rendah PRD: K1: 88, K2: 70, K3: 105, K4: 55, K5: 78, K6: 112
+      var datasetLow = [
+        { carriage_id: 'K1', passenger_count: 88, assumed_capacity: 250 },
+        { carriage_id: 'K2', passenger_count: 70, assumed_capacity: 250 },
+        { carriage_id: 'K3', passenger_count: 105, assumed_capacity: 250 },
+        { carriage_id: 'K4', passenger_count: 55, assumed_capacity: 250 },
+        { carriage_id: 'K5', passenger_count: 78, assumed_capacity: 250 },
+        { carriage_id: 'K6', passenger_count: 112, assumed_capacity: 250 }
+      ];
+      var resLow = Rec.generateRecommendations(datasetLow);
+      var lowOrder = resLow.rankedCarriages.map(function(c) { return c.carriage_id; }).join(',');
+      assert('TC-C01', 'Test C — Ranking', 'Urutan skenario Rendah harus K4,K2,K5,K1,K3,K6', lowOrder === 'K4,K2,K5,K1,K3,K6', lowOrder);
+      assert('TC-C02', 'Test C — Ranking', 'Gerbong terendah (K4) harus memiliki rank 1 dan label Paling Direkomendasikan', resLow.mostRecommended && resLow.mostRecommended.carriage_id === 'K4' && resLow.mostRecommended.is_most_recommended === true, resLow.mostRecommended && resLow.mostRecommended.carriage_id);
+      assert('TC-C03', 'Test C — Ranking', 'Semua 6 gerbong harus tetap muncul dalam daftar', resLow.rankedCarriages.length === 6, resLow.rankedCarriages.length);
+
+      // Tie-Break Test: K3 dan K1 sama-sama 100 penumpang (40%)
+      var datasetTie = [
+        { carriage_id: 'K1', passenger_count: 100, assumed_capacity: 250 },
+        { carriage_id: 'K2', passenger_count: 150, assumed_capacity: 250 },
+        { carriage_id: 'K3', passenger_count: 100, assumed_capacity: 250 },
+        { carriage_id: 'K4', passenger_count: 180, assumed_capacity: 250 },
+        { carriage_id: 'K5', passenger_count: 190, assumed_capacity: 250 },
+        { carriage_id: 'K6', passenger_count: 200, assumed_capacity: 250 }
+      ];
+      var resTie = Rec.generateRecommendations(datasetTie);
+      var tieFirstTwo = resTie.rankedCarriages[0].carriage_id + ',' + resTie.rankedCarriages[1].carriage_id;
+      assert('TC-C04', 'Test C — Ranking', 'Tie-break persentase sama (40%) harus mengutamakan urutan fisik K1 sebelum K3', tieFirstTwo === 'K1,K3', tieFirstTwo);
+
+      // ==========================================
+      // TEST D: PERINGATAN (WARNING BANNERS)
+      // ==========================================
+      // Skenario Tinggi PRD: K1: 230, K2: 220, K3: 262 (>100%), K4: 243, K5: 210, K6: 253 (>100%)
+      var datasetHigh = [
+        { carriage_id: 'K1', passenger_count: 230, assumed_capacity: 250 },
+        { carriage_id: 'K2', passenger_count: 220, assumed_capacity: 250 },
+        { carriage_id: 'K3', passenger_count: 262, assumed_capacity: 250 },
+        { carriage_id: 'K4', passenger_count: 243, assumed_capacity: 250 },
+        { carriage_id: 'K5', passenger_count: 210, assumed_capacity: 250 },
+        { carriage_id: 'K6', passenger_count: 253, assumed_capacity: 250 }
+      ];
+      var resHigh = Rec.generateRecommendations(datasetHigh);
+      assert('TC-D01', 'Test D — Peringatan', 'Skenario tinggi harus mendeteksi gerbong >100% (K3 dan K6)', resHigh.hasOverCapacity === true && resHigh.overCapacityCarriages.indexOf('K3') !== -1 && resHigh.overCapacityCarriages.indexOf('K6') !== -1, resHigh.overCapacityCarriages.join(','));
+      assert('TC-D02', 'Test D — Peringatan', 'Semua gerbong di skenario tinggi (>80%) harus memunculkan banner "Semua gerbong berkepadatan tinggi"', resHigh.allHighDensity === true && resHigh.warningBanner && resHigh.warningBanner.type === 'ALL_HIGH', resHigh.warningBanner && resHigh.warningBanner.message);
+      assert('TC-D03', 'Test D — Peringatan', 'Banner peringatan tidak boleh menyatakan kondisi aman', resHigh.warningBanner && resHigh.warningBanner.message.toLowerCase().indexOf('aman') === -1 && resHigh.warningBanner.description.toLowerCase().indexOf('aman') === -1, 'Bebas klaim aman');
+
+      // ==========================================
+      // TEST E: DATA TIDAK TERSEDIA & VALIDASI
+      // ==========================================
+      var resNull = Rec.generateRecommendations(null);
+      assert('TC-E01', 'Test E — Data Tidak Tersedia', 'Dataset null harus ditolak dengan status "Data Tidak Tersedia"', resNull.isAvailable === false && resNull.statusText === 'Data Tidak Tersedia', resNull.statusText);
+
+      var datasetIncomplete = [
+        { carriage_id: 'K1', passenger_count: 88, assumed_capacity: 250 },
+        { carriage_id: 'K2', passenger_count: 70, assumed_capacity: 250 }
+      ];
+      var resIncomplete = Rec.generateRecommendations(datasetIncomplete);
+      assert('TC-E02', 'Test E — Data Tidak Tersedia', 'Dataset kurang dari 6 gerbong harus ditolak', resIncomplete.isAvailable === false, resIncomplete.isAvailable);
+
+      var datasetInvalidPassenger = [
+        { carriage_id: 'K1', passenger_count: 'invalid', assumed_capacity: 250 },
+        { carriage_id: 'K2', passenger_count: 70, assumed_capacity: 250 },
+        { carriage_id: 'K3', passenger_count: 105, assumed_capacity: 250 },
+        { carriage_id: 'K4', passenger_count: 55, assumed_capacity: 250 },
+        { carriage_id: 'K5', passenger_count: 78, assumed_capacity: 250 },
+        { carriage_id: 'K6', passenger_count: 112, assumed_capacity: 250 }
+      ];
+      var resInvalidPass = Rec.generateRecommendations(datasetInvalidPassenger);
+      assert('TC-E03', 'Test E — Data Tidak Tersedia', 'Nilai penumpang non-numeric harus ditolak dan tidak boleh ada rekomendasi', resInvalidPass.isAvailable === false && resInvalidPass.rankedCarriages.length === 0, resInvalidPass.rankedCarriages.length);
+
+      var datasetWrongCapacity = [
+        { carriage_id: 'K1', passenger_count: 88, assumed_capacity: 300 }, // Salah kapasitas
+        { carriage_id: 'K2', passenger_count: 70, assumed_capacity: 250 },
+        { carriage_id: 'K3', passenger_count: 105, assumed_capacity: 250 },
+        { carriage_id: 'K4', passenger_count: 55, assumed_capacity: 250 },
+        { carriage_id: 'K5', passenger_count: 78, assumed_capacity: 250 },
+        { carriage_id: 'K6', passenger_count: 112, assumed_capacity: 250 }
+      ];
+      var resWrongCap = Rec.generateRecommendations(datasetWrongCapacity);
+      assert('TC-E04', 'Test E — Data Tidak Tersedia', 'Kapasitas selain 250 harus ditolak', resWrongCap.isAvailable === false, resWrongCap.isAvailable);
+
+      // ==========================================
+      // RENDER SUMMARY & TABLE TO DOM
+      // ==========================================
+      var total = testResults.length;
+      document.getElementById('total-badge').textContent = 'Total Uji: ' + total;
+      document.getElementById('pass-badge').textContent = 'Lulus: ' + passCount;
+      document.getElementById('fail-badge').textContent = 'Gagal: ' + failCount;
+
+      var tbody = document.getElementById('test-body');
+      var html = testResults.map(function (t) {
+        var statusBadge = t.isPass ? 
+          '<span class="badge-pass">PASS</span>' : 
+          '<span class="badge-fail">FAIL</span>';
+        
+        return `
+          <tr>
+            <td><code>${t.id}</code></td>
+            <td><strong>${t.group}</strong></td>
+            <td>
+              ${t.description}
+              ${!t.isPass ? '<br><small style="color:red">Actual: ' + t.actualVal + '</small>' : ''}
+            </td>
+            <td class="status-cell">${statusBadge}</td>
+          </tr>
+        `;
+      }).join('');
+      tbody.innerHTML = html;
+
+      // Expose to window for automated testing inspection
+      window.TEST_RESULTS = {
+        total: total,
+        passed: passCount,
+        failed: failCount,
+        details: testResults
+      };
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KRL Density — Jadwal & Kepadatan Commuter Line Yogyakarta–Palur</title>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/passenger.css">
+  <link rel="stylesheet" href="css/schedule.css">
+  <link rel="stylesheet" href="css/journey.css">
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       DISCLAIMER BANNER
+       ═══════════════════════════════════════════════════════════════ -->
+  <div class="disclaimer-banner" role="alert">
+    📅 JADWAL TERPUBLIKASI KAI COMMUTER — Bukan data real-time sensor (Pembaruan: 2 Juni 2026)
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       HEADER
+       ═══════════════════════════════════════════════════════════════ -->
+  <header class="app-header">
+    <div class="container">
+      <div class="header-inner">
+        <div>
+          <h1 class="brand-title">KRL Density — Commuter Line Yogyakarta–Palur</h1>
+          <div class="trip-meta" id="header-trip-meta">
+            <span>Rute: <strong id="header-route">Yogyakarta → Palur</strong></span>
+            <span class="trip-tag" id="header-train-no">Pilih Perjalanan</span>
+            <span>Pembaruan: <strong id="last-update-time">Memuat...</strong></span>
+          </div>
+        </div>
+        <div class="header-actions">
+          <a href="admin.html" class="btn btn-portal-admin" title="Buka Dashboard Petugas / Administrator">
+            🔐 Portal Petugas / Admin
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       MAIN CONTENT
+       ═══════════════════════════════════════════════════════════════ -->
+  <main class="container">
+
+    <!-- ══════════════════════════════════════════════════
+         JOURNEY WIZARD — 3 Tahap
+         ══════════════════════════════════════════════════ -->
+    <section class="journey-wizard" aria-label="Pilih Perjalanan KRL">
+
+      <!-- ── PROGRESS INDICATOR ── -->
+      <div class="wizard-progress" id="wizard-progress">
+        <div class="progress-step active" id="prog-step-1">
+          <div class="step-circle">1</div>
+          <div class="step-label">Pilih Stasiun</div>
+        </div>
+        <div class="progress-connector" id="prog-conn-1"></div>
+        <div class="progress-step" id="prog-step-2">
+          <div class="step-circle">2</div>
+          <div class="step-label">Jadwal</div>
+        </div>
+        <div class="progress-connector" id="prog-conn-2"></div>
+        <div class="progress-step" id="prog-step-3">
+          <div class="step-circle">3</div>
+          <div class="step-label">Detail</div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════
+           TAHAP 1 — PEMILIHAN STASIUN
+           ══════════════════════════════════════════════════ -->
+      <div class="wizard-step" id="step-1">
+        <div class="step-card">
+          <div class="step-card-header">
+            <h2 class="step-card-title">🚆 Pilih Perjalanan KRL</h2>
+            <p class="step-card-subtitle">Commuter Line Yogyakarta – Palur (PP)</p>
+          </div>
+
+          <div class="step-card-body">
+
+            <!-- Stasiun Keberangkatan -->
+            <div class="station-select-group">
+              <label class="station-label" for="select-origin">
+                <span class="station-label-icon">🚉</span>
+                Stasiun Keberangkatan
+              </label>
+              <div class="select-wrapper">
+                <select id="select-origin" class="station-select" aria-label="Pilih Stasiun Keberangkatan">
+                  <option value="">— Pilih Stasiun Asal —</option>
+                </select>
+                <span class="select-arrow">▾</span>
+              </div>
+            </div>
+
+            <!-- Tombol Tukar -->
+            <div class="swap-row">
+              <div class="direction-indicator" id="direction-indicator">
+                <span id="dir-origin-short">—</span>
+                <span class="dir-sep">→</span>
+                <span id="dir-dest-short">—</span>
+              </div>
+              <button type="button" id="btn-swap" class="btn-swap" title="Tukar Stasiun Keberangkatan dan Tujuan">
+                ⇄ Tukar
+              </button>
+            </div>
+
+            <!-- Stasiun Tujuan -->
+            <div class="station-select-group">
+              <label class="station-label" for="select-destination">
+                <span class="station-label-icon">🏁</span>
+                Stasiun Tujuan
+              </label>
+              <div class="select-wrapper">
+                <select id="select-destination" class="station-select" aria-label="Pilih Stasiun Tujuan">
+                  <option value="">— Pilih Stasiun Tujuan —</option>
+                </select>
+                <span class="select-arrow">▾</span>
+              </div>
+            </div>
+
+            <!-- Validasi Error -->
+            <div id="step1-error" class="step-error hidden" role="alert"></div>
+
+            <!-- Tombol Lanjutkan -->
+            <button type="button" id="btn-step1-next" class="btn btn-primary-step" disabled>
+              LANJUTKAN →
+            </button>
+
+          </div><!-- /.step-card-body -->
+
+          <!-- Data Source Info -->
+          <div class="data-source-box">
+            <span class="data-source-icon">ℹ️</span>
+            <span>Jadwal berdasarkan GAPEKA KAI Commuter · Pembaruan: <strong>2 Juni 2026</strong></span>
+          </div>
+        </div><!-- /.step-card -->
+      </div><!-- /#step-1 -->
+
+      <!-- ══════════════════════════════════════════════════
+           TAHAP 2 — DAFTAR JADWAL
+           ══════════════════════════════════════════════════ -->
+      <div class="wizard-step hidden" id="step-2">
+        <div class="step-card">
+
+          <!-- Back button -->
+          <button type="button" id="btn-step2-back" class="btn-back">← Ganti Stasiun</button>
+
+          <!-- Header jadwal -->
+          <div class="schedule-list-header">
+            <div class="schedule-list-title">Train Schedule</div>
+            <div class="schedule-list-route" id="sched-route-label">
+              <span id="sched-origin-name">Yogyakarta</span>
+              <span class="route-arrow-icon">→</span>
+              <span id="sched-dest-name">Palur</span>
+            </div>
+            <div class="schedule-list-meta">
+              <div class="schedule-date-row">
+                <label for="input-travel-date" class="date-label">📅 Tanggal Perjalanan:</label>
+                <input type="date" id="input-travel-date" class="date-input-field" aria-label="Tanggal Perjalanan">
+              </div>
+              <div class="schedule-count-badge" id="schedule-count-badge">Memuat...</div>
+            </div>
+          </div>
+
+          <!-- Data source notice -->
+          <div class="schedule-data-notice">
+            <span>📋 Sumber: KAI Commuter (GAPEKA 2 Juni 2026) — Jadwal terpublikasi, bukan real-time</span>
+          </div>
+
+          <!-- Daftar Jadwal -->
+          <div id="schedule-list-container" class="schedule-list-container">
+            <!-- Diisi JS -->
+          </div>
+
+          <!-- Empty state -->
+          <div id="schedule-empty" class="schedule-empty hidden">
+            <div class="empty-icon">🔍</div>
+            <div class="empty-title">Tidak Ada Jadwal Tersedia</div>
+            <p class="empty-desc" id="empty-desc-text">
+              Tidak ditemukan perjalanan untuk rute ini.
+            </p>
+          </div>
+
+        </div><!-- /.step-card -->
+      </div><!-- /#step-2 -->
+
+      <!-- ══════════════════════════════════════════════════
+           TAHAP 3 — DETAIL PERJALANAN (TIMELINE)
+           ══════════════════════════════════════════════════ -->
+      <div class="wizard-step hidden" id="step-3">
+        <div class="step-card">
+
+          <!-- Back button -->
+          <button type="button" id="btn-step3-back" class="btn-back">← Kembali ke Jadwal</button>
+
+          <!-- Header detail -->
+          <div class="detail-header" id="detail-header">
+            <div class="detail-train-name" id="detail-train-name">KA 402</div>
+            <div class="detail-route" id="detail-route">Yogyakarta → Palur</div>
+            <div class="detail-times" id="detail-times">
+              <span class="detail-dep-time" id="detail-dep-time">05:15</span>
+              <span class="detail-time-sep">—</span>
+              <span class="detail-arr-time" id="detail-arr-time">06:47</span>
+            </div>
+            <div class="detail-line-badge">COMMUTER LINE YOGYAKARTA</div>
+          </div>
+
+          <!-- Data source notice -->
+          <div class="schedule-data-notice">
+            <span>📋 Jadwal resmi KAI Commuter · Pembaruan: 2 Juni 2026</span>
+          </div>
+
+          <!-- Vertical Timeline -->
+          <div class="timeline-wrapper" id="timeline-wrapper">
+            <!-- Diisi JS -->
+          </div>
+
+          <!-- Legenda -->
+          <div class="timeline-legend">
+            <div class="legend-title">Keterangan:</div>
+            <div class="legend-items">
+              <div class="legend-item">
+                <span class="legend-dot dot-origin"></span>
+                <span>Stasiun Keberangkatan Anda</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-dot dot-destination"></span>
+                <span>Stasiun Tujuan Anda</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-dot dot-regular"></span>
+                <span>Stasiun Pemberhentian</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-dot dot-terminal"></span>
+                <span>Terminal (Awal/Akhir)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tombol Pilih Perjalanan Ini -->
+          <div class="detail-action-row">
+            <button type="button" id="btn-select-this-trip" class="btn btn-primary-step">
+              🚆 Pilih Perjalanan Ini & Lihat Kepadatan Gerbong
+            </button>
+          </div>
+
+        </div><!-- /.step-card -->
+      </div><!-- /#step-3 -->
+
+    </section><!-- /.journey-wizard -->
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         BAGIAN KEPADATAN GERBONG
+         ═══════════════════════════════════════════════════════════════ -->
+    <section id="carriage-density-section" aria-label="Status Kepadatan Gerbong">
+
+      <!-- Banner Perjalanan Aktif -->
+      <div class="active-trip-banner" id="active-trip-banner">
+        <div class="active-trip-info">
+          <span class="active-trip-badge">PERJALANAN DIPILIH</span>
+          <span class="active-trip-title" id="active-trip-title">Belum ada perjalanan dipilih</span>
+          <span class="active-trip-meta" id="active-trip-times">Pilih perjalanan dari daftar jadwal di atas</span>
+        </div>
+        <div class="active-trip-sim-note">
+          Data kepadatan: <strong id="active-trip-scenario">Simulasi (Estimasi)</strong>
+        </div>
+      </div>
+
+      <!-- Peringatan Global -->
+      <div id="warning-banner-container"></div>
+
+      <!-- Rekomendasi Gerbong -->
+      <section class="recommendation-section" aria-label="Rekomendasi Gerbong">
+        <div id="recommendation-content">
+          <!-- Diisi JS -->
+        </div>
+      </section>
+
+      <!-- Grid Gerbong -->
+      <section aria-label="Status Kepadatan Enam Gerbong">
+        <div class="section-header">
+          <h2 class="section-title">Urutan Rekomendasi Kepadatan Gerbong (Terendah ke Tertinggi)</h2>
+          <div class="timestamp-info">
+            Kapasitas Asumsi: 250 orang/gerbong (Total: 1.500) —
+            <em>Data kepadatan adalah estimasi/simulasi, bukan sensor real-time</em>
+          </div>
+        </div>
+        <div id="carriage-grid" class="carriage-grid">
+          <!-- Diisi JS -->
+        </div>
+      </section>
+
+    </section><!-- /#carriage-density-section -->
+
+  </main>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       FOOTER
+       ═══════════════════════════════════════════════════════════════ -->
+  <footer class="app-footer">
+    <div class="container">
+      <p><strong>KRL Density — Sistem Informasi Jadwal & Kepadatan Commuter Line Yogyakarta–Palur</strong></p>
+      <p>
+        Jadwal bersumber dari GAPEKA KAI Commuter (Pembaruan: 2 Juni 2026).
+        Data kepadatan gerbong adalah data estimasi/simulasi untuk prototipe akademik, bukan data operasional sensor real-time.
+      </p>
+    </div>
+  </footer>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       SCRIPTS — Urutan pemuatan wajib dipertahankan
+       ═══════════════════════════════════════════════════════════════ -->
+  <script src="js/config/constants.js"></script>
+  <script src="js/config/presets.js"></script>
+  <script src="js/core/calculator.js"></script>
+  <script src="js/core/validator.js"></script>
+  <script src="js/core/recommender.js"></script>
+  <script src="js/core/auth.js"></script>
+  <script src="js/engine/historyStore.js"></script>
+  <script src="js/engine/scheduleData.js"></script>
+  <script src="js/engine/scheduleStore.js"></script>
+  <script src="js/engine/simulationEngine.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/journey.js"></script>
+
+</body>
+</html>

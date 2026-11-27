@@ -1,0 +1,901 @@
+/**
+ * KRL Density — Journey Wizard Stylesheet
+ * Sistem 3-Tahap: Pilih Stasiun → Daftar Jadwal → Detail Perjalanan
+ * Referensi desain: Aplikasi KRL Access & KAI Commuter
+ */
+
+/* ══════════════════════════════════════════════════════════════════
+   1. WIZARD CONTAINER & PROGRESS INDICATOR
+   ══════════════════════════════════════════════════════════════════ */
+
+.journey-wizard {
+  margin-bottom: 28px;
+}
+
+.wizard-progress {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: 20px 0 24px;
+}
+
+.progress-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+.step-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  color: #94a3b8;
+  font-size: 0.95rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #cbd5e1;
+  transition: all 0.3s ease;
+}
+
+.step-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #94a3b8;
+  text-align: center;
+  white-space: nowrap;
+  transition: color 0.3s ease;
+}
+
+.progress-connector {
+  flex: 1;
+  height: 2px;
+  background: #e2e8f0;
+  max-width: 60px;
+  min-width: 24px;
+  margin-bottom: 24px;
+  transition: background 0.3s ease;
+}
+
+/* Active step */
+.progress-step.active .step-circle {
+  background: #0369a1;
+  color: #ffffff;
+  border-color: #0369a1;
+  box-shadow: 0 0 0 4px rgba(3, 105, 161, 0.15);
+}
+.progress-step.active .step-label {
+  color: #0369a1;
+  font-weight: 700;
+}
+
+/* Completed step */
+.progress-step.completed .step-circle {
+  background: #16a34a;
+  color: #ffffff;
+  border-color: #16a34a;
+}
+.progress-step.completed .step-label {
+  color: #16a34a;
+}
+.progress-connector.completed {
+  background: #16a34a;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   2. STEP CARDS — Base Card Structure
+   ══════════════════════════════════════════════════════════════════ */
+
+.wizard-step {
+  animation: fadeSlideIn 0.25s ease;
+}
+
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.step-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 0;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.07);
+}
+
+.step-card-header {
+  background: linear-gradient(135deg, #0369a1 0%, #0284c7 100%);
+  padding: 24px 28px 20px;
+  color: #ffffff;
+}
+
+.step-card-title {
+  margin: 0 0 4px;
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+}
+
+.step-card-subtitle {
+  margin: 0;
+  font-size: 0.875rem;
+  color: rgba(255,255,255,0.8);
+  font-weight: 500;
+}
+
+.step-card-body {
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   3. TAHAP 1 — DROPDOWN PEMILIHAN STASIUN
+   ══════════════════════════════════════════════════════════════════ */
+
+.station-select-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.station-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.station-label-icon {
+  font-size: 1.1rem;
+}
+
+.select-wrapper {
+  position: relative;
+}
+
+.station-select {
+  width: 100%;
+  appearance: none;
+  -webkit-appearance: none;
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px 44px 14px 16px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1e293b;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+  font-family: inherit;
+}
+
+.station-select:focus {
+  border-color: #0369a1;
+  box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.12);
+  background: #ffffff;
+}
+
+.station-select:hover {
+  border-color: #94a3b8;
+}
+
+.select-arrow {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: #64748b;
+  font-size: 1rem;
+}
+
+/* Swap row */
+.swap-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 0;
+}
+
+.direction-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #0369a1;
+  background: #eff6ff;
+  border: 1.5px solid #bfdbfe;
+  border-radius: 20px;
+  padding: 6px 14px;
+  flex: 1;
+}
+
+.dir-sep {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.btn-swap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffffff;
+  border: 2px solid #0369a1;
+  color: #0369a1;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-swap:hover {
+  background: #0369a1;
+  color: #ffffff;
+}
+
+.btn-swap:active {
+  transform: scale(0.96);
+}
+
+/* Error state */
+.step-error {
+  background: #fef2f2;
+  border: 1.5px solid #fca5a5;
+  color: #b91c1c;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+/* Primary step button */
+.btn-primary-step {
+  width: 100%;
+  background: linear-gradient(135deg, #0369a1 0%, #0284c7 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  padding: 15px 20px;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  letter-spacing: 0.03em;
+  transition: all 0.2s;
+  margin-top: 4px;
+}
+
+.btn-primary-step:hover:not(:disabled) {
+  background: linear-gradient(135deg, #075985 0%, #0369a1 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(3, 105, 161, 0.3);
+}
+
+.btn-primary-step:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-primary-step:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+/* Data source info box */
+.data-source-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: #f0fdf4;
+  border-top: 1px solid #bbf7d0;
+  font-size: 0.8rem;
+  color: #166534;
+}
+
+.data-source-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   4. TAHAP 2 — DAFTAR JADWAL (VERTICAL LIST STYLE)
+   ══════════════════════════════════════════════════════════════════ */
+
+.btn-back {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: #0369a1;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 16px 20px 8px;
+  transition: color 0.2s;
+}
+
+.btn-back:hover {
+  color: #075985;
+  text-decoration: underline;
+}
+
+.schedule-list-header {
+  padding: 8px 20px 16px;
+  border-bottom: 1.5px solid #f1f5f9;
+}
+
+.schedule-list-title {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+  margin-bottom: 4px;
+}
+
+.schedule-list-route {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0369a1;
+  margin-bottom: 10px;
+}
+
+.route-arrow-icon {
+  color: #64748b;
+  font-size: 1.1rem;
+}
+
+.schedule-list-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.schedule-date-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.date-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.date-input-field {
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #1e293b;
+  background: #f8fafc;
+  outline: none;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.date-input-field:focus {
+  border-color: #0369a1;
+  box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.1);
+}
+
+.schedule-count-badge {
+  font-size: 0.8rem;
+  font-weight: 700;
+  background: #eff6ff;
+  color: #1d4ed8;
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid #bfdbfe;
+}
+
+/* Data notice */
+.schedule-data-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 20px;
+  background: #fefce8;
+  border-bottom: 1px solid #fde68a;
+  font-size: 0.775rem;
+  color: #854d0e;
+  font-weight: 500;
+}
+
+/* Schedule list */
+.schedule-list-container {
+  /* scrollable area on mobile */
+}
+
+/* Individual schedule row */
+.schedule-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+  transition: background 0.15s;
+  position: relative;
+}
+
+.schedule-row:hover {
+  background: #f0f9ff;
+}
+
+.schedule-row:active {
+  background: #e0f2fe;
+}
+
+.schedule-row:last-child {
+  border-bottom: none;
+}
+
+/* Train icon */
+.schedule-train-icon {
+  font-size: 1.5rem;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #eff6ff;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+/* Train info */
+.schedule-train-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.schedule-train-number {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #1e293b;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.schedule-train-time {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #0369a1;
+  letter-spacing: -0.01em;
+  display: block;
+}
+
+.schedule-train-arrival {
+  font-size: 0.78rem;
+  color: #64748b;
+  font-weight: 500;
+  display: block;
+  margin-top: 1px;
+}
+
+/* Duration badge */
+.schedule-duration {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 3px 8px;
+  border-radius: 20px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Arrow icon */
+.schedule-arrow {
+  font-size: 1.1rem;
+  color: #94a3b8;
+  flex-shrink: 0;
+  transition: color 0.2s;
+}
+
+.schedule-row:hover .schedule-arrow {
+  color: #0369a1;
+}
+
+/* Empty state */
+.schedule-empty {
+  padding: 48px 20px;
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 2.5rem;
+  margin-bottom: 12px;
+}
+
+.empty-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.empty-desc {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   5. TAHAP 3 — DETAIL PERJALANAN (VERTICAL TIMELINE)
+   ══════════════════════════════════════════════════════════════════ */
+
+.detail-header {
+  padding: 20px 24px 16px;
+  background: linear-gradient(135deg, #0369a1 0%, #0284c7 100%);
+  color: #ffffff;
+}
+
+.detail-train-name {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 4px;
+}
+
+.detail-route {
+  font-size: 0.95rem;
+  color: rgba(255,255,255,0.85);
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.detail-times {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.detail-dep-time,
+.detail-arr-time {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+}
+
+.detail-time-sep {
+  color: rgba(255,255,255,0.6);
+  font-size: 1.2rem;
+}
+
+.detail-line-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: rgba(255,255,255,0.9);
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.3);
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+/* Timeline */
+.timeline-wrapper {
+  padding: 20px 24px;
+}
+
+.timeline-stop {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  position: relative;
+}
+
+/* Track column */
+.tl-track {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 28px;
+  flex-shrink: 0;
+  margin-right: 16px;
+}
+
+.tl-node {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #94a3b8;
+  border: 2px solid #cbd5e1;
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+}
+
+.tl-line {
+  width: 2px;
+  flex: 1;
+  min-height: 32px;
+  background: #e2e8f0;
+  margin: 0 auto;
+}
+
+.timeline-stop:last-child .tl-line {
+  display: none;
+}
+
+/* Stop info */
+.tl-info {
+  flex: 1;
+  padding-bottom: 24px;
+}
+
+.tl-time {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #1e293b;
+  display: block;
+  line-height: 1;
+  margin-bottom: 2px;
+}
+
+.tl-station-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #374151;
+  display: block;
+}
+
+.tl-station-code {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+/* Highlight boxes */
+.tl-highlight-origin {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  background: #eff6ff;
+  border: 1.5px solid #3b82f6;
+  color: #1d4ed8;
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.tl-highlight-dest {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  background: #fef2f2;
+  border: 1.5px solid #f87171;
+  color: #991b1b;
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+/* Stop states */
+
+/* Terminal (awal/akhir rute kereta) */
+.timeline-stop.is-terminal .tl-node {
+  width: 12px;
+  height: 12px;
+  background: #94a3b8;
+  border-color: #64748b;
+}
+
+/* User origin */
+.timeline-stop.is-user-origin .tl-node {
+  width: 18px;
+  height: 18px;
+  background: #2563eb;
+  border-color: #1d4ed8;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2);
+}
+.timeline-stop.is-user-origin .tl-time {
+  color: #1d4ed8;
+}
+.timeline-stop.is-user-origin .tl-station-name {
+  color: #1d4ed8;
+  font-weight: 800;
+}
+
+/* User destination */
+.timeline-stop.is-user-destination .tl-node {
+  width: 18px;
+  height: 18px;
+  background: #dc2626;
+  border-color: #b91c1c;
+  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.2);
+}
+.timeline-stop.is-user-destination .tl-time {
+  color: #b91c1c;
+}
+.timeline-stop.is-user-destination .tl-station-name {
+  color: #b91c1c;
+  font-weight: 800;
+}
+
+/* Intermediate (between origin & dest) */
+.timeline-stop.is-between .tl-node {
+  background: #0369a1;
+  border-color: #0284c7;
+}
+.timeline-stop.is-between .tl-line {
+  background: #bae6fd;
+}
+.timeline-stop.is-between .tl-station-name {
+  color: #0369a1;
+}
+
+/* Outside user segment — dimmed */
+.timeline-stop.is-outside {
+  opacity: 0.45;
+}
+
+/* Timeline Legend */
+.timeline-legend {
+  padding: 16px 24px;
+  border-top: 1px solid #f1f5f9;
+  background: #f8fafc;
+}
+
+.legend-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 10px;
+}
+
+.legend-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: #475569;
+  font-weight: 500;
+}
+
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dot-origin      { background: #2563eb; border: 2px solid #1d4ed8; }
+.dot-destination { background: #dc2626; border: 2px solid #b91c1c; }
+.dot-regular     { background: #0369a1; border: 2px solid #0284c7; }
+.dot-terminal    { background: #94a3b8; border: 2px solid #64748b; }
+
+/* Detail action row */
+.detail-action-row {
+  padding: 16px 24px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.detail-action-row .btn-primary-step {
+  margin-top: 0;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   6. ACTIVE TRIP BANNER (diperluas dari passenger.css)
+   ══════════════════════════════════════════════════════════════════ */
+
+.active-trip-sim-note {
+  font-size: 0.78rem;
+  background: rgba(0,0,0,0.12);
+  padding: 4px 10px;
+  border-radius: 4px;
+  color: rgba(255,255,255,0.9);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   7. RESPONSIVE
+   ══════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 600px) {
+  .step-card-header {
+    padding: 18px 18px 14px;
+  }
+
+  .step-card-body {
+    padding: 18px;
+  }
+
+  .wizard-progress {
+    padding: 16px 0 20px;
+  }
+
+  .step-label {
+    font-size: 0.65rem;
+  }
+
+  .schedule-list-title {
+    font-size: 1.2rem;
+  }
+
+  .schedule-train-time {
+    font-size: 1.15rem;
+  }
+
+  .detail-dep-time,
+  .detail-arr-time {
+    font-size: 1.3rem;
+  }
+
+  .timeline-wrapper {
+    padding: 16px;
+  }
+
+  .timeline-legend {
+    padding: 12px 16px;
+  }
+
+  .detail-action-row {
+    padding: 14px 16px;
+  }
+
+  .schedule-row {
+    padding: 12px 16px;
+  }
+
+  .btn-back {
+    padding: 12px 16px 6px;
+  }
+
+  .schedule-list-header {
+    padding: 8px 16px 14px;
+  }
+
+  .schedule-data-notice {
+    padding: 7px 16px;
+  }
+
+  .schedule-list-meta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

@@ -1,0 +1,267 @@
+/**
+ * KRL Density MVP - Officer View Stylesheet (Tahap 4 Finalization)
+ * Styling Panel Kontrol Petugas, Telemetri, dan Tabel Riwayat Responsif
+ */
+
+.officer-panel {
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  box-shadow: var(--shadow-sm);
+}
+
+@media (max-width: 480px) {
+  .officer-panel {
+    padding: 12px;
+  }
+}
+
+.panel-header {
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+}
+
+.panel-title {
+  margin: 0 0 4px 0;
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--color-text-main);
+}
+
+.panel-subtitle {
+  margin: 0;
+  font-size: 0.825rem;
+  color: var(--color-text-muted);
+}
+
+/* Status Cards Grid (Section 4 Ringkasan Status) */
+.status-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+@media (min-width: 480px) {
+  .status-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 900px) {
+  .status-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+.status-card {
+  background: #f8fafc;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.status-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+  letter-spacing: 0.5px;
+}
+
+.status-value {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--color-text-main);
+  line-height: 1.2;
+}
+
+/* Control Buttons Section */
+.control-section {
+  background: #f1f5f9;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.control-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+@media (min-width: 768px) {
+  .control-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+.control-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  margin: 0;
+  color: var(--color-text-main);
+}
+
+.control-note {
+  font-size: 0.775rem;
+  color: var(--color-text-muted);
+}
+
+.btn-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 16px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn:disabled, .btn.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.btn-start {
+  background: #16a34a;
+  color: #ffffff;
+}
+
+.btn-start:hover {
+  background: #15803d;
+}
+
+.btn-stop {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.btn-stop:hover {
+  background: #b91c1c;
+}
+
+.btn-danger-outline {
+  background: #ffffff;
+  border-color: #fecaca;
+  color: #dc2626;
+  font-size: 0.8rem;
+  padding: 7px 12px;
+}
+
+.btn-danger-outline:hover {
+  background: #fef2f2;
+  border-color: #f87171;
+}
+
+/* Tables Section */
+.table-section {
+  margin-top: 20px;
+}
+
+.table-header-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+@media (min-width: 640px) {
+  .table-header-row {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+.table-title {
+  font-size: 0.925rem;
+  font-weight: 800;
+  margin: 0;
+  color: var(--color-text-main);
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  margin-bottom: 16px;
+  background: #ffffff;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.775rem;
+  text-align: left;
+  min-width: 580px; /* Menjamin tabel tetap rapi dengan horizontal scroll pada smartphone */
+}
+
+.data-table th {
+  background: #0f172a;
+  color: #ffffff;
+  padding: 8px 10px;
+  font-weight: 700;
+  border: 1px solid #334155;
+  white-space: nowrap;
+}
+
+.data-table td {
+  padding: 7px 10px;
+  border: 1px solid var(--color-border);
+  vertical-align: middle;
+}
+
+.data-table tbody tr:nth-child(even) {
+  background: #f8fafc;
+}
+
+.data-table tbody tr:hover {
+  background: #f1f5f9;
+}
+
+/* Badge di Tabel */
+.badge-low { background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 0.7rem; }
+.badge-med { background: #fef9c3; color: #854d0e; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 0.7rem; }
+.badge-high { background: #fee2e2; color: #991b1b; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 0.7rem; }
+.badge-normal { background: #e0f2fe; color: #075985; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 0.7rem; }
+
+/* History Reset Box */
+.history-reset-box {
+  border-top: 1px dashed var(--color-border);
+  padding-top: 14px;
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+@media (min-width: 640px) {
+  .history-reset-box {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
